@@ -1,65 +1,56 @@
 import { Router } from 'express';
+import { authenticateToken } from '../middleware/auth';
+import {
+  getAllPatterns,
+  getPatternsByUserId,
+  getPatternById,
+  createPattern,
+  updatePattern,
+  deletePattern,
+  getPatternSvg,
+  generatePattern,
+  finalizePattern,
+  archivePattern,
+  getPatternsByDesignId,
+  getPatternsByStatus,
+} from '../controllers/patternController';
 
 const router = Router();
 
-// GET /patterns - Get all patterns (with optional user and status filters)
-router.get('/', (req, res) => {
-  res.status(501).json({ message: 'Get all patterns - Controller not implemented yet' });
-});
+// GET /patterns - Get all patterns (with optional user and status filters) (protected)
+router.get('/', authenticateToken, getAllPatterns);
 
-// GET /patterns/user/:userId - Get all patterns for a specific user
-router.get('/user/:userId', (req, res) => {
-  res.status(501).json({ message: 'Get patterns for user - Controller not implemented yet' });
-});
+// GET /patterns/user/:userId - Get all patterns for a specific user (protected)
+router.get('/user/:userId', authenticateToken, getPatternsByUserId);
 
-// GET /patterns/:id - Get pattern by ID
-router.get('/:id', (req, res) => {
-  res.status(501).json({ message: 'Get pattern by ID - Controller not implemented yet' });
-});
+// GET /patterns/design/:designId - Get all patterns for a specific design (protected)
+router.get('/design/:designId', authenticateToken, getPatternsByDesignId);
 
-// POST /patterns - Create new pattern (generate from design and measurements)
-router.post('/', (req, res) => {
-  res.status(501).json({ message: 'Create pattern - Controller not implemented yet' });
-});
+// GET /patterns/status/:status - Get patterns by status (protected)
+router.get('/status/:status', authenticateToken, getPatternsByStatus);
 
-// PUT /patterns/:id - Update pattern (name, status, etc.)
-router.put('/:id', (req, res) => {
-  res.status(501).json({ message: 'Update pattern - Controller not implemented yet' });
-});
+// POST /patterns/generate - Generate new pattern from design and measurements (protected)
+router.post('/generate', authenticateToken, generatePattern);
 
-// DELETE /patterns/:id - Delete pattern
-router.delete('/:id', (req, res) => {
-  res.status(501).json({ message: 'Delete pattern - Controller not implemented yet' });
-});
+// GET /patterns/:id - Get pattern by ID (protected)
+router.get('/:id', authenticateToken, getPatternById);
 
-// GET /patterns/:id/svg - Get SVG data for pattern
-router.get('/:id/svg', (req, res) => {
-  res.status(501).json({ message: 'Get pattern SVG - Controller not implemented yet' });
-});
+// POST /patterns - Create new pattern (generate from design and measurements) (protected)
+router.post('/', authenticateToken, createPattern);
 
-// POST /patterns/generate - Generate new pattern from design and measurements
-router.post('/generate', (req, res) => {
-  res.status(501).json({ message: 'Generate pattern - Controller not implemented yet' });
-});
+// PUT /patterns/:id - Update pattern (name, status, etc.) (protected)
+router.put('/:id', authenticateToken, updatePattern);
 
-// PUT /patterns/:id/finalize - Finalize pattern (change status to finalized)
-router.put('/:id/finalize', (req, res) => {
-  res.status(501).json({ message: 'Finalize pattern - Controller not implemented yet' });
-});
+// DELETE /patterns/:id - Delete pattern (protected)
+router.delete('/:id', authenticateToken, deletePattern);
 
-// PUT /patterns/:id/archive - Archive pattern (change status to archived)
-router.put('/:id/archive', (req, res) => {
-  res.status(501).json({ message: 'Archive pattern - Controller not implemented yet' });
-});
+// GET /patterns/:id/svg - Get SVG data for pattern (protected)
+router.get('/:id/svg', authenticateToken, getPatternSvg);
 
-// GET /patterns/design/:designId - Get all patterns for a specific design
-router.get('/design/:designId', (req, res) => {
-  res.status(501).json({ message: 'Get patterns for design - Controller not implemented yet' });
-});
+// PUT /patterns/:id/finalize - Finalize pattern (change status to finalized) (protected)
+router.put('/:id/finalize', authenticateToken, finalizePattern);
 
-// GET /patterns/status/:status - Get patterns by status
-router.get('/status/:status', (req, res) => {
-  res.status(501).json({ message: 'Get patterns by status - Controller not implemented yet' });
-});
+// PUT /patterns/:id/archive - Archive pattern (change status to archived) (protected)
+router.put('/:id/archive', authenticateToken, archivePattern);
 
 export default router;

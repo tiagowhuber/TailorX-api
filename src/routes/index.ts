@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import authRoutes from './auth';
 import userRoutes from './users';
 import measurementTypeRoutes from './measurementTypes';
 import userMeasurementRoutes from './userMeasurements';
@@ -9,6 +10,7 @@ import orderRoutes from './orders';
 const router = Router();
 
 // Mount all route modules
+router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/measurement-types', measurementTypeRoutes);
 router.use('/user-measurements', userMeasurementRoutes);
