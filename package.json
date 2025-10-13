@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "db:init": "ts-node src/scripts/initDb.ts",
+    "db:sync": "ts-node -e \"import('./src/models').then(({sequelize}) => sequelize.sync({alter: true}).then(() => process.exit(0)))\""
   },
   "keywords": [],
   "author": "",
@@ -17,11 +19,20 @@
     "@freesewing/config": "^4.3.1",
     "@freesewing/core": "^4.3.1",
     "@freesewing/plugin-theme": "^4.3.1",
-    "express": "^5.1.0"
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.7"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.7.1",
+    "@types/pg": "^8.15.5",
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
