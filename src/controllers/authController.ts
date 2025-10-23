@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
+import { OAuth2Client } from 'google-auth-library';
 import { User } from '../models';
 import { generateToken } from '../config/jwt';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const loginUser = async (req: Request, res: Response) => {
   try {
@@ -186,6 +189,75 @@ export const refreshToken = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Refresh token error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const googleAuth = async (req: Request, res: Response) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google credential is required',
+      });
+    }
+
+    // Verify the Google token
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID!,
+    });
+
+    const payload = ticket.getPayload();
+    
+    if (!payload || !payload.email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Google token',
+      });
+    }
+
+    const { email, given_name, family_name, sub: googleId } = payload;
+
+    // Check if user already exists
+    let user = await User.findOne({ where: { email } });
+
+    if (!user) {
+      // Create new user with Google data
+      const password_hash = await User.hashPassword(googleId); // Use Google ID as password
+      
+      const userData: any = {
+        email,
+        password_hash,
+      };
+      
+      if (given_name) userData.first_name = given_name;
+      if (family_name) userData.last_name = family_name;
+      
+      user = await User.create(userData);
+    }
+
+    // Generate JWT token
+    const token = generateToken({ id: user.id, email: user.email });
+
+    // Remove password_hash from response
+    const { password_hash: _, ...userResponse } = user.toJSON();
+
+    res.json({
+      success: true,
+      message: 'Google authentication successful',
+      data: {
+        user: userResponse,
+        token,
+      },
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
