@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { User } from '../models';
 import { Op } from 'sequelize';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
+import { deleteProfilePicture, getFilePathFromUrl } from '../middleware/upload';
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -181,4 +185,114 @@ export const deleteUser = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const uploadUserProfilePicture = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if user exists
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    // Process image with sharp (resize and optimize)
+    const uploadDir = path.join(__dirname, '../../uploads/profile-pictures');
+    const outputFilename = `processed_${req.file.filename}`;
+    const outputPath = path.join(uploadDir, outputFilename);
+
+    await sharp(req.file.path)
+      .resize(400, 400, {
+        fit: 'cover',
+        position: 'center',
+      })
+      .jpeg({ quality: 90 })
+      .toFile(outputPath);
+
+    // Delete original unprocessed file
+    fs.unlinkSync(req.file.path);
+
+    // Delete old profile picture if exists
+    if (user.profile_picture_url) {
+      const oldFilePath = getFilePathFromUrl(user.profile_picture_url);
+      deleteProfilePicture(oldFilePath);
+    }
+
+    // Update user with new profile picture URL
+    const profilePictureUrl = `/uploads/profile-pictures/${outputFilename}`;
+    await user.update({ profile_picture_url: profilePictureUrl });
+
+    res.json({
+      success: true,
+      message: 'Profile picture uploaded successfully',
+      data: {
+        profile_picture_url: profilePictureUrl,
+      },
+    });
+  } catch (error) {
+    console.error('Upload profile picture error:', error);
+    
+    // Clean up uploaded file if processing failed
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload profile picture',
+    });
+  }
+};
+
+export const deleteUserProfilePicture = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (!user.profile_picture_url) {
+      return res.status(400).json({
+        success: false,
+        message: 'User has no profile picture',
+      });
+    }
+
+    // Delete the file
+    const filePath = getFilePathFromUrl(user.profile_picture_url);
+    deleteProfilePicture(filePath);
+
+    // Update user - set to empty string to clear the field
+    user.profile_picture_url = undefined;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile picture deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete profile picture error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete profile picture',
+    });
+  }
+};
+
 

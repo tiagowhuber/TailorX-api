@@ -6,8 +6,9 @@ interface UserAttributes {
   id: number;
   email: string;
   password_hash: string;
-  first_name?: string;
-  last_name?: string;
+  first_name?: string | undefined;
+  last_name?: string | undefined;
+  profile_picture_url?: string | undefined;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -18,8 +19,9 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public id!: number;
   public email!: string;
   public password_hash!: string;
-  public first_name?: string;
-  public last_name?: string;
+  public first_name?: string | undefined;
+  public last_name?: string | undefined;
+  public profile_picture_url?: string | undefined;
   public created_at?: Date;
   public updated_at?: Date;
 
@@ -60,6 +62,10 @@ User.init(
     },
     last_name: {
       type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    profile_picture_url: {
+      type: DataTypes.STRING(500),
       allowNull: true,
     },
     created_at: {

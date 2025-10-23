@@ -222,7 +222,7 @@ export const googleAuth = async (req: Request, res: Response) => {
       });
     }
 
-    const { email, given_name, family_name, sub: googleId } = payload;
+    const { email, given_name, family_name, picture, sub: googleId } = payload;
 
     // Check if user already exists
     let user = await User.findOne({ where: { email } });
@@ -238,8 +238,12 @@ export const googleAuth = async (req: Request, res: Response) => {
       
       if (given_name) userData.first_name = given_name;
       if (family_name) userData.last_name = family_name;
+      if (picture) userData.profile_picture_url = picture; // Save Google profile picture
       
       user = await User.create(userData);
+    } else if (picture && !user.profile_picture_url) {
+      // Update existing user with Google profile picture if they don't have one
+      await user.update({ profile_picture_url: picture });
     }
 
     // Generate JWT token

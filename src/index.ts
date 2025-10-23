@@ -3,6 +3,7 @@ dotenv.config();
 
 import express, { Request, Response } from "express";
 import cors from "cors";
+import path from "path";
 import routes from "./routes";
 import { sequelize } from "./models";
 
@@ -16,6 +17,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello from TailorX backend with TypeScript!");
