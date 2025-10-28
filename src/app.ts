@@ -17,10 +17,23 @@ app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get("/", (req: Request, res: Response) => {
-  res.send("Hello from TailorX backend with TypeScript!");
+  res.json({ 
+    message: "Hello from TailorX backend with TypeScript!",
+    status: "running",
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Mount API routes
 app.use("/api", routes);
+
+// Error handling middleware
+app.use((err: any, req: Request, res: Response, next: any) => {
+  console.error('Error:', err);
+  res.status(500).json({ 
+    error: 'Internal server error',
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
 
 export default app;
