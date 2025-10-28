@@ -6,9 +6,31 @@ import routes from "./routes";
 const app = express();
 
 // CORS configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://tailorxsewing.netlify.app'
+];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, '')); // Remove trailing slash
+}
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or Postman)
+    if (!origin) return callback(null, true);
+    
+    const originWithoutSlash = origin.replace(/\/$/, '');
+    if (allowedOrigins.includes(originWithoutSlash)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
@@ -28,7 +50,7 @@ app.get("/", (req: Request, res: Response) => {
 app.use("/api", routes);
 
 // Error handling middleware
-app.use((err: any, req: Request, res: Response, next: any) => {
+app.use((err: any, req: Request, res: Response, _next: any) => {
   console.error('Error:', err);
   res.status(500).json({ 
     error: 'Internal server error',
