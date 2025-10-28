@@ -8,8 +8,14 @@ const sequelize = new Sequelize({
   username: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'password',
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  dialectOptions: {
+    ssl: process.env.NODE_ENV === 'production' ? {
+      require: true,
+      rejectUnauthorized: false
+    } : false
+  },
   pool: {
-    max: 5,
+    max: 2, // Lower max connections for serverless
     min: 0,
     acquire: 30000,
     idle: 10000
