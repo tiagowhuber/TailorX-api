@@ -1,5 +1,12 @@
 import { Request, Response } from 'express';
-import { Pattern, User, Design } from '../models';
+import { Pattern, User, Design, UserMeasurement, MeasurementType, DesignMeasurement } from '../models';
+import {
+  transformMeasurementsForFreeSewing,
+  validateRequiredMeasurements,
+  generateFreeSewingPattern,
+  generatePatternName,
+  extractRequiredMeasurementKeys,
+} from '../utils/freesewing';
 
 export const getAllPatterns = async (req: Request, res: Response) => {
   try {
@@ -102,6 +109,14 @@ export const getPatternById = async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         message: 'Pattern not found',
+      });
+    }
+
+    // Authorization check: ensure user can only access their own patterns
+    if (req.user && req.user.id !== pattern.user_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied',
       });
     }
 
@@ -304,13 +319,21 @@ export const getPatternSvg = async (req: Request, res: Response) => {
 
 export const generatePattern = async (req: Request, res: Response) => {
   try {
-    const { user_id, design_id, name, measurements, settings } = req.body;
+    const { user_id, design_id } = req.body;
 
     // Validate required fields
-    if (!user_id || !design_id || !name || !measurements) {
+    if (!user_id || !design_id) {
       return res.status(400).json({
         success: false,
-        message: 'User ID, design ID, name, and measurements are required',
+        message: 'User ID and design ID are required',
+      });
+    }
+
+    // Authorization check: ensure user can only generate patterns for themselves
+    if (req.user && req.user.id !== user_id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only generate patterns for yourself',
       });
     }
 
@@ -323,7 +346,7 @@ export const generatePattern = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if design exists
+    // Check if design exists and is active
     const design = await Design.findByPk(design_id);
     if (!design) {
       return res.status(404).json({
@@ -332,15 +355,96 @@ export const generatePattern = async (req: Request, res: Response) => {
       });
     }
 
-    // TODO: Integrate with FreeSewing pattern generation
-    // For now, we'll create a pattern without actual generation
+    if (!design.is_active) {
+      return res.status(400).json({
+        success: false,
+        message: 'This design is not currently available',
+      });
+    }
+
+    if (!design.freesewing_pattern) {
+      return res.status(400).json({
+        success: false,
+        message: 'This design does not support pattern generation',
+      });
+    }
+
+    // Fetch user's measurements with measurement types
+    const userMeasurements = await UserMeasurement.findAll({
+      where: { user_id },
+      include: [
+        {
+          model: MeasurementType,
+          as: 'measurementType',
+          attributes: ['id', 'name', 'freesewing_key'],
+        },
+      ],
+    });
+
+    // Fetch design's required measurements
+    const designMeasurements = await DesignMeasurement.findAll({
+      where: { design_id },
+      include: [
+        {
+          model: MeasurementType,
+          as: 'measurementType',
+          attributes: ['id', 'name', 'freesewing_key'],
+        },
+      ],
+    });
+
+    // Extract required measurement keys
+    const requiredKeys = extractRequiredMeasurementKeys(designMeasurements);
+
+    // Transform user measurements to FreeSewing format
+    const freesewingMeasurements = transformMeasurementsForFreeSewing(userMeasurements);
+
+    // Validate that user has all required measurements
+    const validation = validateRequiredMeasurements(freesewingMeasurements, requiredKeys);
+    
+    if (!validation.isValid) {
+      // Get the missing measurement details
+      const missingMeasurements = designMeasurements
+        .filter(dm => 
+          dm.measurementType?.freesewing_key && 
+          validation.missing.includes(dm.measurementType.freesewing_key)
+        )
+        .map(dm => ({
+          id: dm.measurementType!.id,
+          name: dm.measurementType!.name,
+          freesewing_key: dm.measurementType!.freesewing_key,
+        }));
+
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required measurements',
+        missing_measurements: missingMeasurements,
+      });
+    }
+
+    // Get design settings (use defaults, no user override)
+    const settings = design.default_settings || { sa: 10, complete: true, paperless: false };
+
+    // Generate the pattern using FreeSewing
+    const { svg, sizeKb } = await generateFreeSewingPattern({
+      patternType: design.freesewing_pattern,
+      measurements: freesewingMeasurements,
+      settings,
+    });
+
+    // Auto-generate pattern name
+    const userName = user.first_name ? `${user.first_name}${user.last_name ? ' ' + user.last_name : ''}` : undefined;
+    const patternName = generatePatternName(design.name, userName);
+
+    // Create the pattern in database
     const pattern = await Pattern.create({
       user_id,
       design_id,
-      name,
-      measurements_used: measurements,
-      settings_used: settings || {},
-      svg_data: '<svg></svg>', // Placeholder SVG data
+      name: patternName,
+      measurements_used: freesewingMeasurements,
+      settings_used: settings,
+      svg_data: svg,
+      svg_size_kb: sizeKb,
       status: 'draft',
     });
 
@@ -364,13 +468,21 @@ export const generatePattern = async (req: Request, res: Response) => {
       success: true,
       message: 'Pattern generated successfully',
       data: createdPattern,
-      note: 'Pattern generation integration with FreeSewing is pending',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Generate pattern error:', error);
+    
+    // Check if it's a FreeSewing-specific error
+    if (error.message && error.message.includes('pattern')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
+      message: 'Internal server error while generating pattern',
     });
   }
 };

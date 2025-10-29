@@ -1,5 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../config/database';
+import MeasurementType from './MeasurementType';
 
 interface UserMeasurementAttributes {
   id: number;
@@ -19,6 +20,9 @@ class UserMeasurement extends Model<UserMeasurementAttributes, UserMeasurementCr
   public value!: number;
   public created_at?: Date;
   public updated_at?: Date;
+
+  // Association properties
+  public measurementType?: MeasurementType;
 }
 
 UserMeasurement.init(
