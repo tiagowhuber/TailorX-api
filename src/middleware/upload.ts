@@ -3,15 +3,31 @@ import path from 'path';
 import fs from 'fs';
 import { Request } from 'express';
 
-// Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '../../uploads/profile-pictures');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Use /tmp directory for serverless environments (Vercel, AWS Lambda)
+// Local development will use uploads directory
+// WARNING: In serverless, /tmp is ephemeral - files are lost after function execution
+// For production, consider using cloud storage (S3, Cloudinary, Vercel Blob, etc.)
+const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
+const uploadDir = isServerless 
+  ? '/tmp/uploads/profile-pictures'
+  : path.join(__dirname, '../../uploads/profile-pictures');
+
+// Ensure uploads directory exists (lazy initialization)
+const ensureUploadDir = () => {
+  if (!fs.existsSync(uploadDir)) {
+    try {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    } catch (error) {
+      console.warn('Could not create upload directory:', error);
+    }
+  }
+};
 
 // Configure storage
 const storage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb) => {
+    // Ensure directory exists before upload
+    ensureUploadDir();
     cb(null, uploadDir);
   },
   filename: (req: Request, file: Express.Multer.File, cb) => {
