@@ -217,7 +217,7 @@ Old profile pictures are automatically deleted when:
 
 ## Security Considerations
 
-✅ **Implemented**:
+ **Implemented**:
 - File type validation (MIME type check)
 - File size limits (2MB max)
 - Authentication required for all endpoints

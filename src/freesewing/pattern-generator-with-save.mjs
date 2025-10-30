@@ -40,19 +40,19 @@ const settings = {
 
 async function generatePattern() {
   try {
-    console.log('🧵 FreeSewing Pattern Generator')
+    console.log(' FreeSewing Pattern Generator')
     console.log('=' .repeat(50))
-    console.log('\n📏 Using measurements:')
+    console.log('\n Using measurements:')
     Object.entries(measurements).forEach(([key, value]) => {
       console.log(`   ${key}: ${value}mm`)
     })
 
-    console.log('\n⚙️  Pattern settings:')
+    console.log('\n  Pattern settings:')
     console.log(`   Seam allowance: ${settings.sa}mm`)
     console.log(`   Complete: ${settings.complete}`)
     console.log(`   Paperless: ${settings.paperless}`)
 
-    console.log('\n🎨 Generating pattern...')
+    console.log('\n Generating pattern...')
 
     // Generate the pattern
     const svg = new Aaron(settings)
@@ -76,13 +76,13 @@ async function generatePattern() {
     // Save the SVG file
     writeFileSync(filepath, svg)
 
-    console.log('\n✅ Pattern generated successfully!')
-    console.log(`💾 Saved to: ${filepath}`)
-    console.log(`📊 File size: ${(svg.length / 1024).toFixed(2)} KB`)
-    console.log('\n💡 Tip: Open the SVG file in a browser or SVG viewer to see your pattern!')
+    console.log('\n Pattern generated successfully!')
+    console.log(` Saved to: ${filepath}`)
+    console.log(` File size: ${(svg.length / 1024).toFixed(2)} KB`)
+    console.log('\n Tip: Open the SVG file in a browser or SVG viewer to see your pattern!')
 
   } catch (error) {
-    console.error('\n❌ Error generating pattern:', error.message)
+    console.error('\n Error generating pattern:', error.message)
     console.error(error)
     process.exit(1)
   }

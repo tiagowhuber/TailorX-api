@@ -10,12 +10,12 @@ const { execSync } = require('child_process');
 const distPath = path.join(__dirname, 'dist');
 
 if (!fs.existsSync(distPath)) {
-  console.log('⚠️  dist folder not found. Running build...');
+  console.log('  dist folder not found. Running build...');
   try {
     execSync('npm run build', { stdio: 'inherit' });
-    console.log('✅ Build completed successfully');
+    console.log(' Build completed successfully');
   } catch (error) {
-    console.error('❌ Build failed:', error.message);
+    console.error(' Build failed:', error.message);
     process.exit(1);
   }
 }
