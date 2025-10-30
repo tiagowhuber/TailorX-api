@@ -2,8 +2,26 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import path from "path";
 import routes from "./routes";
+import { sequelize } from "./models";
 
 const app = express();
+
+// Initialize database connection for serverless
+// This will reuse connections across invocations
+const initializeDatabase = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('Database connection established.');
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    // Don't throw - let the function continue but log the error
+  }
+};
+
+// Initialize on first load (cold start)
+if (process.env.VERCEL || process.env.NODE_ENV === 'production') {
+  initializeDatabase();
+}
 
 // CORS configuration
 const allowedOrigins = [
