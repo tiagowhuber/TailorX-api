@@ -5,12 +5,7 @@
  * and dynamic pattern generation for different FreeSewing patterns.
  */
 
-// Use require for FreeSewing packages to avoid TypeScript module resolution issues
-const Aaron = require('@freesewing/aaron').Aaron;
-const theme = require('@freesewing/plugin-theme').pluginTheme;
-
 // Import model types
-//import type MeasurementType from '../models/MeasurementType';
 import type UserMeasurement from '../models/UserMeasurement';
 import type DesignMeasurement from '../models/DesignMeasurement';
 
@@ -94,22 +89,30 @@ export function validateRequiredMeasurements(
  * @returns Pattern constructor class
  * @throws Error if pattern type is not supported
  */
-function getPatternClass(patternType: string) {
-  const patterns: { [key: string]: any } = {
-    aaron: Aaron,
-    // Add more patterns as they are installed:
-    // brian: require('@freesewing/brian').Brian,
-    // bella: require('@freesewing/bella').Bella,
-    // etc.
-  }
-
-  const PatternClass = patterns[patternType.toLowerCase()]
+async function getPatternClass(patternType: string) {
+  const patternTypeLower = patternType.toLowerCase();
   
-  if (!PatternClass) {
-    throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: ${Object.keys(patterns).join(', ')}`)
+  try {
+    switch (patternTypeLower) {
+      case 'aaron': {
+        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        const { Aaron } = await import('@freesewing/aaron');
+        return Aaron;
+      }
+      // Add more patterns as they are installed:
+      // case 'brian': {
+      //   const { Brian } = await import('@freesewing/brian');
+      //   return Brian;
+      // }
+      default:
+        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron`);
+    }
+  } catch (error: any) {
+    if (error.message.includes('Unsupported pattern type')) {
+      throw error;
+    }
+    throw new Error(`Failed to load pattern ${patternType}: ${error.message}`);
   }
-
-  return PatternClass
 }
 
 /**
@@ -125,8 +128,10 @@ export async function generateFreeSewingPattern(
   const { patternType, measurements, settings = {} } = options
 
   try {
-    // Get the appropriate pattern class
-    const PatternClass = getPatternClass(patternType)
+    // Get the appropriate pattern class and theme plugin
+    const PatternClass = await getPatternClass(patternType);
+    // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+    const { pluginTheme } = await import('@freesewing/plugin-theme');
 
     // Merge measurements into settings
     const patternSettings: PatternSettings = {
@@ -136,7 +141,7 @@ export async function generateFreeSewingPattern(
 
     // Generate the pattern
     const svg = new PatternClass(patternSettings)
-      .use(theme) // Load theme plugin for styled SVG
+      .use(pluginTheme) // Load theme plugin for styled SVG
       .draft() // Draft the pattern
       .render() // Render to SVG string
 
