@@ -4,7 +4,25 @@ import path from "path";
 
 const app = express();
 
-// Lazy load routes to avoid circular dependencies and immediate DB connection
+// Database initialization flag
+let dbInitialized = false;
+
+// Initialize database connection
+const initializeDatabase = async () => {
+  if (dbInitialized) return;
+  
+  try {
+    const { sequelize } = require("./models");
+    await sequelize.authenticate();
+    console.log('Database connection established.');
+    dbInitialized = true;
+  } catch (error) {
+    console.error('Database connection failed:', error);
+    throw error;
+  }
+};
+
+// Lazy load routes to avoid circular dependencies
 let routes: any = null;
 const getRoutes = () => {
   if (!routes) {
@@ -54,9 +72,20 @@ app.get("/", (req: Request, res: Response) => {
   });
 });
 
-// Mount API routes with lazy loading
-app.use("/api", (req, res, next) => {
-  getRoutes()(req, res, next);
+// Mount API routes with lazy loading and database initialization
+app.use("/api", async (req, res, next) => {
+  try {
+    // Initialize database on first API request
+    await initializeDatabase();
+    // Load and use routes
+    getRoutes()(req, res, next);
+  } catch (error) {
+    console.error('API initialization error:', error);
+    res.status(500).json({ 
+      error: 'Database connection failed',
+      message: 'Unable to connect to database'
+    });
+  }
 });
 
 // Error handling middleware
