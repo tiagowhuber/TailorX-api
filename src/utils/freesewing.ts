@@ -10,7 +10,7 @@ const Aaron = require('@freesewing/aaron').Aaron;
 const theme = require('@freesewing/plugin-theme').pluginTheme;
 
 // Import model types
-import type MeasurementType from '../models/MeasurementType';
+//import type MeasurementType from '../models/MeasurementType';
 import type UserMeasurement from '../models/UserMeasurement';
 import type DesignMeasurement from '../models/DesignMeasurement';
 
