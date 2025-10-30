@@ -1,8 +1,5 @@
-node_modules
-src
-*.ts
-!api/**/*.js
-tsconfig.json
+# Don't ignore anything - let Vercel handle it
+# Only ignore local files
 .env.local
 .env.development
 uploads/profile-pictures/*
