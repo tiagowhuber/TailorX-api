@@ -3,6 +3,14 @@ import cors from "cors";
 import path from "path";
 import routes from "./routes";
 
+// Import models to ensure associations are set up
+// Wrapped in try-catch to prevent initialization errors in serverless
+try {
+  require("./models");
+} catch (error) {
+  console.error("Error loading models:", error);
+}
+
 const app = express();
 
 // CORS configuration

@@ -1,0 +1,9 @@
+node_modules
+src
+*.ts
+!api/**/*.js
+tsconfig.json
+.env.local
+.env.development
+uploads/profile-pictures/*
+!uploads/profile-pictures/.gitkeep
