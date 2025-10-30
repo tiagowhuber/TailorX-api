@@ -6,6 +6,7 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node index.js",
+    "postinstall": "npm run build",
     "db:init": "ts-node src/scripts/initDb.ts",
     "db:sync": "ts-node -e \"import('./src/models').then(({sequelize}) => sequelize.sync({alter: true}).then(() => process.exit(0)))\""
   },
