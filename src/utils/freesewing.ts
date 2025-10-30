@@ -83,6 +83,15 @@ export function validateRequiredMeasurements(
 }
 
 /**
+ * Dynamic import wrapper to prevent TypeScript from transpiling to require()
+ * This is needed because FreeSewing packages are ES Modules
+ */
+function dynamicImport(moduleName: string) {
+  // Using Function constructor to prevent TypeScript from transpiling import()
+  return new Function('moduleName', 'return import(moduleName)')(moduleName);
+}
+
+/**
  * Get the FreeSewing pattern class based on pattern type
  * 
  * @param patternType - Name of the FreeSewing pattern (e.g., 'aaron', 'brian')
@@ -96,12 +105,12 @@ async function getPatternClass(patternType: string) {
     switch (patternTypeLower) {
       case 'aaron': {
         // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
-        const { Aaron } = await import('@freesewing/aaron');
+        const { Aaron } = await dynamicImport('@freesewing/aaron');
         return Aaron;
       }
       // Add more patterns as they are installed:
       // case 'brian': {
-      //   const { Brian } = await import('@freesewing/brian');
+      //   const { Brian } = await dynamicImport('@freesewing/brian');
       //   return Brian;
       // }
       default:
@@ -131,7 +140,7 @@ export async function generateFreeSewingPattern(
     // Get the appropriate pattern class and theme plugin
     const PatternClass = await getPatternClass(patternType);
     // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
-    const { pluginTheme } = await import('@freesewing/plugin-theme');
+    const { pluginTheme } = await dynamicImport('@freesewing/plugin-theme');
 
     // Merge measurements into settings
     const patternSettings: PatternSettings = {
