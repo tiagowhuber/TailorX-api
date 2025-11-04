@@ -557,6 +557,41 @@ export const archivePattern = async (req: Request, res: Response) => {
   }
 };
 
+export const unarchivePattern = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const pattern = await Pattern.findByPk(id);
+    if (!pattern) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pattern not found',
+      });
+    }
+
+    if (pattern.status !== 'archived') {
+      return res.status(400).json({
+        success: false,
+        message: 'Pattern is not archived',
+      });
+    }
+
+    await pattern.update({ status: 'draft' });
+
+    res.json({
+      success: true,
+      message: 'Pattern unarchived successfully',
+      data: pattern,
+    });
+  } catch (error) {
+    console.error('Unarchive pattern error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 export const getPatternsByDesignId = async (req: Request, res: Response) => {
   try {
     const { designId } = req.params;

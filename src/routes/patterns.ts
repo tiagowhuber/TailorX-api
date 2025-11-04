@@ -11,6 +11,7 @@ import {
   generatePattern,
   finalizePattern,
   archivePattern,
+  unarchivePattern,
   getPatternsByDesignId,
   getPatternsByStatus,
 } from '../controllers/patternController';
@@ -52,5 +53,8 @@ router.put('/:id/finalize', authenticateToken, finalizePattern);
 
 // PUT /patterns/:id/archive - Archive pattern (change status to archived) (protected)
 router.put('/:id/archive', authenticateToken, archivePattern);
+
+// PUT /patterns/:id/unarchive - Unarchive pattern (change status back to draft) (protected)
+router.put('/:id/unarchive', authenticateToken, unarchivePattern);
 
 export default router;
