@@ -96,12 +96,21 @@ CREATE TABLE orders (
     shipping_address TEXT,
     billing_address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    payment_status VARCHAR(50) DEFAULT 'pending',
+    payment_method VARCHAR(50),
+    payment_token VARCHAR(255),
+    payment_url TEXT,
+    transaction_id VARCHAR(255),
+    session_id VARCHAR(255)
 );
 
 CREATE INDEX idx_orders_user ON orders(user_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_number ON orders(order_number);
+CREATE INDEX idx_orders_payment_status ON orders(payment_status);
+CREATE INDEX idx_orders_transaction_id ON orders(transaction_id);
+CREATE INDEX idx_orders_session_id ON orders(session_id);
 
 -- Order Items (individual patterns purchased)
 CREATE TABLE order_items (

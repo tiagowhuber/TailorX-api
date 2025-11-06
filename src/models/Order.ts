@@ -9,6 +9,12 @@ interface OrderAttributes {
   total_amount: number;
   shipping_address?: string;
   billing_address?: string;
+  payment_status?: string;
+  payment_method?: string;
+  payment_token?: string;
+  payment_url?: string;
+  transaction_id?: string;
+  session_id?: string;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -23,6 +29,12 @@ class Order extends Model<OrderAttributes, OrderCreationAttributes> implements O
   public total_amount!: number;
   public shipping_address?: string;
   public billing_address?: string;
+  public payment_status?: string;
+  public payment_method?: string;
+  public payment_token?: string;
+  public payment_url?: string;
+  public transaction_id?: string;
+  public session_id?: string;
   public created_at?: Date;
   public updated_at?: Date;
 }
@@ -62,6 +74,30 @@ Order.init(
     },
     billing_address: {
       type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    payment_status: {
+      type: DataTypes.STRING(50),
+      defaultValue: 'pending',
+    },
+    payment_method: {
+      type: DataTypes.STRING(50),
+      allowNull: true,
+    },
+    payment_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    payment_url: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    transaction_id: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+    },
+    session_id: {
+      type: DataTypes.STRING(255),
       allowNull: true,
     },
     created_at: {
