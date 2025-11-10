@@ -423,7 +423,13 @@ export const generatePattern = async (req: Request, res: Response) => {
     }
 
     // Get design settings (use defaults, no user override)
-    const settings = design.default_settings || { sa: 10, complete: true, paperless: false };
+    const baseSettings = design.default_settings || { sa: 10, complete: true };
+    
+    // Always enable paperless mode for dimension markers and measurements
+    const settings = {
+      ...baseSettings,
+      paperless: true,
+    };
 
     // Generate the pattern using FreeSewing
     const { svg, sizeKb } = await generateFreeSewingPattern({

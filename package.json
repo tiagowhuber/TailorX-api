@@ -19,6 +19,7 @@
     "@freesewing/brian": "^4.3.1",
     "@freesewing/config": "^4.3.1",
     "@freesewing/core": "^4.3.1",
+    "@freesewing/plugin-annotations": "^4.3.1",
     "@freesewing/plugin-theme": "^4.3.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.19",

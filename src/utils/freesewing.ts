@@ -94,27 +94,42 @@ function dynamicImport(moduleName: string) {
 /**
  * Get the FreeSewing pattern class based on pattern type
  * 
- * @param patternType - Name of the FreeSewing pattern (e.g., 'aaron', 'brian')
+ * @param patternType - Name of the FreeSewing pattern (e.g., 'aaron', 'brian', 'Brian body block')
  * @returns Pattern constructor class
  * @throws Error if pattern type is not supported
  */
 async function getPatternClass(patternType: string) {
-  const patternTypeLower = patternType.toLowerCase();
+  // Normalize pattern type: extract just the pattern code
+  // "Brian body block" -> "brian", "Aaron A-shirt" -> "aaron"
+  const patternTypeLower = patternType.toLowerCase().trim();
+  
+  // Extract the pattern code from common pattern name formats
+  let patternCode = patternTypeLower;
+  if (patternTypeLower.includes('brian')) {
+    patternCode = 'brian';
+  } else if (patternTypeLower.includes('aaron')) {
+    patternCode = 'aaron';
+  }
   
   try {
-    switch (patternTypeLower) {
+    switch (patternCode) {
       case 'aaron': {
         // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
         const { Aaron } = await dynamicImport('@freesewing/aaron');
         return Aaron;
       }
+      case 'brian': {
+        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        const { Brian } = await dynamicImport('@freesewing/brian');
+        return Brian;
+      }
       // Add more patterns as they are installed:
-      // case 'brian': {
-      //   const { Brian } = await dynamicImport('@freesewing/brian');
-      //   return Brian;
+      // case 'other-pattern': {
+      //   const { OtherPattern } = await dynamicImport('@freesewing/other-pattern');
+      //   return OtherPattern;
       // }
       default:
-        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron`);
+        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian`);
     }
   } catch (error: any) {
     if (error.message.includes('Unsupported pattern type')) {
@@ -137,25 +152,45 @@ export async function generateFreeSewingPattern(
   const { patternType, measurements, settings = {} } = options
 
   try {
-    // Get the appropriate pattern class and theme plugin
+    // Get the appropriate pattern class
     const PatternClass = await getPatternClass(patternType);
     // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
     const { pluginTheme } = await dynamicImport('@freesewing/plugin-theme');
+    // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+    const { pluginAnnotations } = await dynamicImport('@freesewing/plugin-annotations');
 
-    // Merge measurements into settings
-    const patternSettings: PatternSettings = {
-      ...settings,
-      measurements
+    // FreeSewing v4 pattern configuration
+    const patternConfig = {
+      measurements,
+      // Default settings for pattern generation
+      sa: settings.sa ?? 10, // Seam allowance in mm
+      complete: settings.complete ?? true,
+      paperless: settings.paperless ?? true,
+      ...settings
     }
 
-    // Generate the pattern
-    const svg = new PatternClass(patternSettings)
-      .use(pluginTheme) // Load theme plugin for styled SVG
-      .draft() // Draft the pattern
-      .render() // Render to SVG string
+    console.log('Generating pattern with config:', patternConfig)
+
+    // Generate the pattern using FreeSewing v4 API
+    // Create pattern instance with design config
+    const pattern = new PatternClass(patternConfig)
+    
+    // Use the theme plugin for styling
+    pattern.use(pluginTheme)
+    
+    // Use the annotations plugin for paperless mode (measurements/dimensions)
+    pattern.use(pluginAnnotations)
+    
+    // Draft the pattern
+    const draftedPattern = pattern.draft()
+    
+    // Render to SVG
+    const svg = draftedPattern.render()
 
     // Calculate size in KB
     const sizeKb = Buffer.byteLength(svg, 'utf8') / 1024
+
+    console.log(`Pattern generated successfully. Size: ${sizeKb.toFixed(2)} KB`)
 
     return {
       svg,
@@ -163,6 +198,7 @@ export async function generateFreeSewingPattern(
     }
   } catch (error: any) {
     console.error('FreeSewing pattern generation error:', error)
+    console.error('Error stack:', error.stack)
     throw new Error(`Failed to generate ${patternType} pattern: ${error.message}`)
   }
 }

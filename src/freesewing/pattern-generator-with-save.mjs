@@ -5,8 +5,9 @@
  * You can customize the design, measurements, and settings.
  */
 
-import { Aaron } from '@freesewing/aaron'
+import { Brian } from '@freesewing/brian'
 import { pluginTheme as theme } from '@freesewing/plugin-theme'
+import { pluginAnnotations as annotations } from '@freesewing/plugin-annotations'
 import { writeFileSync, mkdirSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -20,7 +21,6 @@ const __dirname = dirname(__filename)
 const measurements = {
   biceps: 387,
   chest: 1105,
-  hips: 928,
   hpsToBust: 230,
   hpsToWaistBack: 502,
   neck: 420,
@@ -28,13 +28,15 @@ const measurements = {
   shoulderToShoulder: 481,
   waistToArmpit: 260,
   waistToHips: 139,
+  shoulderToWrist: 600,
+  wrist: 180,
 }
 
 // Pattern settings
 const settings = {
   sa: 10, // Seam allowance in mm (0 for no seam allowance)
   complete: true, // Generate complete pattern with all details
-  paperless: false, // Set to true for a paperless pattern (with dimensions)
+  paperless: true, // Set to true for a paperless pattern (with dimensions)
   measurements, // Pass in the measurements
 }
 
@@ -55,8 +57,9 @@ async function generatePattern() {
     console.log('\n Generating pattern...')
 
     // Generate the pattern
-    const svg = new Aaron(settings)
+    const svg = new Brian(settings)
       .use(theme) // Load theme plugin for styled SVG
+      .use(annotations) // Load annotations plugin for paperless mode (measurements)
       .draft() // Draft the pattern
       .render() // Render to SVG
 
@@ -70,7 +73,7 @@ async function generatePattern() {
 
     // Generate filename with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0]
-    const filename = `aaron-pattern-${timestamp}.svg`
+    const filename = `brian-pattern-${timestamp}.svg`
     const filepath = join(outputDir, filename)
 
     // Save the SVG file
