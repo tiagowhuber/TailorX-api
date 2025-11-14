@@ -109,6 +109,8 @@ async function getPatternClass(patternType: string) {
     patternCode = 'brian';
   } else if (patternTypeLower.includes('aaron')) {
     patternCode = 'aaron';
+  } else if (patternTypeLower.includes('sven')) {
+    patternCode = 'sven';
   }
   
   try {
@@ -123,13 +125,18 @@ async function getPatternClass(patternType: string) {
         const { Brian } = await dynamicImport('@freesewing/brian');
         return Brian;
       }
+      case 'sven': {
+        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        const { Sven } = await dynamicImport('@freesewing/sven');
+        return Sven;
+      }
       // Add more patterns as they are installed:
       // case 'other-pattern': {
       //   const { OtherPattern } = await dynamicImport('@freesewing/other-pattern');
       //   return OtherPattern;
       // }
       default:
-        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian`);
+        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven`);
     }
   } catch (error: any) {
     if (error.message.includes('Unsupported pattern type')) {

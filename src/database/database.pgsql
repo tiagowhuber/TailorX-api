@@ -160,21 +160,64 @@ CREATE TRIGGER update_patterns_updated_at BEFORE UPDATE ON patterns
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- Sample data for FreeSewing measurement types
 INSERT INTO measurement_types (name, description, freesewing_key) VALUES
-    ('Biceps Circumference', 'Circumference of the biceps at the widest part', 'biceps'),
-    ('Chest Circumference', 'Chest circumference at the fullest part', 'chest'),
-    ('Hips Circumference', 'Hip circumference at the fullest part', 'hips'),
-    ('High Point Shoulder to Bust', 'Distance from shoulder point to bust point', 'hpsToBust'),
-    ('High Point Shoulder to Waist Back', 'Distance from shoulder point to waist at back', 'hpsToWaistBack'),
-    ('Neck Circumference', 'Neck circumference', 'neck'),
-    ('Shoulder Slope', 'Shoulder slope angle in degrees', 'shoulderSlope'),
-    ('Shoulder to Shoulder', 'Distance between shoulder points', 'shoulderToShoulder'),
-    ('Waist to Armpit', 'Distance from waist to armpit', 'waistToArmpit'),
-    ('Waist to Hips', 'Distance from waist to hips', 'waistToHips'),
-    ('Inseam', 'Inseam length for pants', 'inseam'),
-    ('Waist Circumference', 'Natural waist circumference', 'waist'),
-    ('Arm Length', 'Shoulder to wrist length', 'armLength');
+    -- A
+    ('Circunferencia de tobillo', 'Circunferencia alrededor del tobillo.', 'ankle'),
+
+    -- B
+    ('Circunferencia de bíceps', 'Circunferencia del bíceps en su punto más ancho.', 'biceps'),
+    ('Busto frontal', 'Medida horizontal del busto en la parte frontal.', 'bustFront'),
+    ('Punto de busto a bajo busto', 'Distancia vertical desde el punto de busto hasta el bajo busto.', 'bustPointToUnderbust'),
+    ('Extensión de busto', 'Medida horizontal entre puntos de busto.', 'bustSpan'),
+
+    -- C
+    ('Circunferencia de pecho', 'Circunferencia en la parte más estrecha del torso.', 'chest'),
+    ('Costura cruzada', 'Medida de costura cruzada en la espalda.', 'crossSeam'),
+    ('Costura cruzada frontal', 'Medida de costura cruzada en el frente.', 'crossSeamFront'),
+    ('Profundidad de entrepierna', 'Distancia vertical desde la cintura hasta la entrepierna sentado.', 'crotchDepth'),
+
+    -- H
+    ('Circunferencia de talón', 'Circunferencia alrededor del talón del pie.', 'heel'),
+    ('Circunferencia de cabeza', 'Circunferencia alrededor de la cabeza.', 'head'),
+    ('Busto alto', 'Circunferencia en la parte alta del busto (sobre el pecho).', 'highBust'),
+    ('Busto alto frontal', 'Medida frontal del busto alto.', 'highBustFront'),
+    ('Circunferencia de caderas', 'Circunferencia en la parte más ancha de las caderas.', 'hips'),
+    ('HPS a busto', 'Distancia desde punto alto del hombro hasta punto de busto.', 'hpsToBust'),
+    ('HPS a cintura trasera', 'Distancia desde punto alto del hombro hasta cintura en la espalda.', 'hpsToWaistBack'),
+    ('HPS a cintura frontal', 'Distancia desde punto alto del hombro hasta cintura en el frente.', 'hpsToWaistFront'),
+
+    -- I
+    ('Entrepierna', 'Longitud desde la entrepierna hasta el tobillo por la parte interna de la pierna.', 'inseam'),
+
+    -- K
+    ('Circunferencia de rodilla', 'Circunferencia alrededor de la rodilla.', 'knee'),
+
+    -- N
+    ('Circunferencia de cuello', 'Circunferencia alrededor del cuello en la base.', 'neck'),
+
+    -- S
+    ('Circunferencia de asiento', 'Circunferencia alrededor de la parte más ancha de los glúteos.', 'seat'),
+    ('Profundidad de asiento', 'Medida posterior desde cintura hasta línea de asiento.', 'seatBack'),
+    ('Inclinación de hombro', 'Ángulo de inclinación descendente del hombro.', 'shoulderSlope'),
+    ('Hombro a codo', 'Distancia desde el punto del hombro hasta el codo.', 'shoulderToElbow'),
+    ('Hombro a hombro', 'Distancia horizontal entre los puntos de los hombros por la espalda.', 'shoulderToShoulder'),
+    ('Hombro a muñeca', 'Distancia desde el punto del hombro hasta la muñeca.', 'shoulderToWrist'),
+
+    -- U
+    ('Bajo busto', 'Circunferencia justo debajo del busto.', 'underbust'),
+    ('Circunferencia de muslo superior', 'Circunferencia en la parte más ancha del muslo superior.', 'upperLeg'),
+
+    -- W
+    ('Circunferencia de cintura', 'Circunferencia en la parte más estrecha de la cintura.', 'waist'),
+    ('Cintura trasera', 'Medida de cintura en la parte posterior (mitad de la circunferencia).', 'waistBack'),
+    ('Cintura a axila', 'Distancia vertical desde cintura hasta axila.', 'waistToArmpit'),
+    ('Cintura a piso', 'Longitud vertical desde cintura hasta el piso.', 'waistToFloor'),
+    ('Cintura a caderas', 'Distancia vertical desde cintura hasta línea de caderas.', 'waistToHips'),
+    ('Cintura a rodilla', 'Distancia vertical desde cintura hasta centro de la rodilla.', 'waistToKnee'),
+    ('Cintura a asiento', 'Distancia vertical desde cintura hasta línea de asiento.', 'waistToSeat'),
+    ('Cintura a bajo busto', 'Distancia vertical desde cintura hasta bajo busto.', 'waistToUnderbust'),
+    ('Cintura a muslo superior', 'Distancia vertical desde cintura hasta parte más ancha del muslo.', 'waistToUpperLeg'),
+    ('Circunferencia de muñeca', 'Circunferencia alrededor de la muñeca.', 'wrist');
 
 -- Sample design (Aaron pattern)
 INSERT INTO designs (name, description, freesewing_pattern, base_price, default_settings) VALUES
@@ -182,7 +225,7 @@ INSERT INTO designs (name, description, freesewing_pattern, base_price, default_
         'Aaron A-Shirt',
         'A classic athletic tank top / A-shirt pattern',
         'aaron',
-        15.00,
+        15000,
         '{"sa": 10, "complete": true, "paperless": false}'::jsonb
     );
 
