@@ -2,8 +2,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" 
      xmlns:xlink="http://www.w3.org/1999/xlink"
      class="freesewing"
-     viewBox="0 0 534.76 700"
-     width="534.76mm"
+     viewBox="0 0 714.76 700"
+     width="714.76mm"
      height="700mm">
   <style type="text/css"><![CDATA[
 /* Sample classes */
@@ -303,7 +303,7 @@ svg.freesewing path.gridbox {
   <path class="gridline-xs" d="M 0 5 L 100 5 M 0 15 L 100 15 M 0 25 L 100 25 M 0 35 L 100 35 M 0 45 L 100 45 M 0 55 L 100 55 M 0 65 L 100 65 M 0 75 L 100 75 M 0 85 L 100 85 M 0 95 L 100 95" />
 </pattern>" grid_brian.back="<pattern id="grid_brian.back" xlink:href="#grid" x="0" y="641" />'" grid_brian.front="<pattern id="grid_brian.front" xlink:href="#grid" x="0" y="641" />'" grid_brian.sleeve="<pattern id="grid_brian.sleeve" xlink:href="#grid" x="0" y="0" />'"
 </defs>
-  <g id="fs-stack-brian.sleeve" transform="translate(282.55, 187.61)">
+  <g id="fs-stack-brian.sleeve" transform="translate(89.99809014623753, -0.002600681718689657) translate(282.5519098537625, 187.6126006817187)">
 
 <!-- Start of group #fs-stack-brian.sleeve-part-brian.sleeve -->
 <g id="fs-stack-brian.sleeve-part-brian.sleeve" transform="translate(0, 0)">
@@ -368,4 +368,12 @@ svg.freesewing path.gridbox {
 </g>
 <!-- end of group #fs-stack-brian.sleeve-part-brian.sleeve -->
 </g>
+  <!-- Dimension label -->
+  <text x="357.38" y="695" 
+        text-anchor="middle" 
+        font-family="Arial, sans-serif" 
+        font-size="12" 
+        fill="#666666">
+    51.5 cm × 68 cm
+  </text>
 </svg>

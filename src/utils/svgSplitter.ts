@@ -87,7 +87,7 @@ interface SplitPatternResult {
 const DEFAULT_CONFIG: SplitterConfig = {
   maxWidth: 1260, // 126cm in mm
   maxHeight: 860, // 86cm in mm
-  margin: 10, // 10mm margin
+  margin: 50, // 50mm margin for annotations
 };
 
 /**
@@ -479,36 +479,47 @@ function extractStyles(document: Document): string {
 function createPieceSVG(piece: PatternPiece, defs: string, styles: string, margin: number): string {
   const { boundingBox } = piece;
   
-  // Calculate new dimensions with margin
-  const viewBoxWidth = boundingBox.width + margin * 2;
-  const viewBoxHeight = boundingBox.height + margin * 2;
+  // Add extra horizontal margin to ensure content isn't cut off (especially annotations on the left)
+  const horizontalMargin = margin * 10;
+  const verticalMargin = margin;
   
-  // Clone the group element
+  // Calculate new dimensions with margin
+  const canvasWidth = boundingBox.width + horizontalMargin * 2;
+  const canvasHeight = boundingBox.height + verticalMargin * 2;
+  
+  // Clone the group element - keep original transforms intact
   const clonedGroup = piece.groupElement.cloneNode(true) as Element;
   
-  // Adjust transform to position piece at origin (0,0) with margin offset
-  // Original transform places piece at its global position
-  // We need to shift it so its bounding box min point is at (margin, margin)
-  const currentTransform = piece.transform;
-  const newTransformX = currentTransform.translateX - boundingBox.minX + margin;
-  const newTransformY = currentTransform.translateY - boundingBox.minY + margin;
+  // Get existing transform or create new one
+  const existingTransform = clonedGroup.getAttribute('transform') || '';
   
-  clonedGroup.setAttribute(
-    'transform',
-    `translate(${newTransformX}, ${newTransformY})`
-  );
+  // Add translation to position the piece on canvas with margin
+  const translateX = horizontalMargin - boundingBox.minX;
+  const translateY = verticalMargin - boundingBox.minY;
+  
+  // Prepend the centering translation to any existing transforms
+  const newTransform = `translate(${translateX}, ${translateY}) ${existingTransform}`.trim();
+  clonedGroup.setAttribute('transform', newTransform);
   
   // Build the SVG with viewBox starting at 0,0
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" 
      xmlns:xlink="http://www.w3.org/1999/xlink"
      class="freesewing"
-     viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}"
-     width="${viewBoxWidth}mm"
-     height="${viewBoxHeight}mm">
+     viewBox="0 0 ${canvasWidth} ${canvasHeight}"
+     width="${canvasWidth}mm"
+     height="${canvasHeight}mm">
   ${styles}
   ${defs}
   ${clonedGroup.outerHTML}
+  <!-- Dimension label -->
+  <text x="${canvasWidth / 2}" y="${canvasHeight - 5}" 
+        text-anchor="middle" 
+        font-family="Arial, sans-serif" 
+        font-size="12" 
+        fill="#666666">
+    ${Math.round(boundingBox.width / 10 * 10) / 10} cm × ${Math.round(boundingBox.height / 10 * 10) / 10} cm
+  </text>
 </svg>`;
   
   return svg;
@@ -543,26 +554,32 @@ function subdividePiece(
       const tileWidth = tileMaxX - tileMinX;
       const tileHeight = tileMaxY - tileMinY;
       
-      // Clone the group
+      // Clone the group - keep original transforms
       const clonedGroup = piece.groupElement.cloneNode(true) as Element;
       
-      // Adjust transform to position this tile at origin with margin
-      const currentTransform = piece.transform;
-      const newTransformX = currentTransform.translateX - tileMinX + config.margin;
-      const newTransformY = currentTransform.translateY - tileMinY + config.margin;
+      // Calculate canvas dimensions with margin (centered)
+      const canvasWidth = tileWidth + config.margin * 2;
+      const canvasHeight = tileHeight + config.margin * 2;
       
-      clonedGroup.setAttribute(
-        'transform',
-        `translate(${newTransformX}, ${newTransformY})`
-      );
+      // Get existing transform or create new one
+      const existingTransform = clonedGroup.getAttribute('transform') || '';
       
-      // Add viewBox clipping for this tile section
-      const viewBoxWidth = tileWidth + config.margin * 2;
-      const viewBoxHeight = tileHeight + config.margin * 2;
+      // Add translation to center the tile on canvas
+      const translateX = config.margin - tileMinX;
+      const translateY = config.margin - tileMinY;
+      
+      // Prepend the centering translation to any existing transforms
+      const newTransform = `translate(${translateX}, ${translateY}) ${existingTransform}`.trim();
+      clonedGroup.setAttribute('transform', newTransform);
+      
+      const tileCm = {
+        width: Math.round(tileWidth / 10 * 10) / 10,
+        height: Math.round(tileHeight / 10 * 10) / 10,
+      };
       
       // Add tile marker text
       const tileMarker = `
-  <text x="${viewBoxWidth / 2}" y="20" 
+  <text x="${canvasWidth / 2}" y="20" 
         text-anchor="middle" 
         font-family="Arial, sans-serif" 
         font-size="14" 
@@ -570,12 +587,19 @@ function subdividePiece(
         font-weight="bold">
     ${piece.name.toUpperCase()} - TILE ${tileIndex} of ${totalTiles}
   </text>
-  <text x="${viewBoxWidth / 2}" y="40" 
+  <text x="${canvasWidth / 2}" y="40" 
         text-anchor="middle" 
         font-family="Arial, sans-serif" 
         font-size="10" 
         fill="#666666">
     Match edges with adjacent tiles
+  </text>
+  <text x="${canvasWidth / 2}" y="${canvasHeight - 5}" 
+        text-anchor="middle" 
+        font-family="Arial, sans-serif" 
+        font-size="12" 
+        fill="#666666">
+    ${tileCm.width} cm × ${tileCm.height} cm
   </text>`;
       
       // Build tile SVG with viewBox starting at 0,0
@@ -583,11 +607,11 @@ function subdividePiece(
 <svg xmlns="http://www.w3.org/2000/svg" 
      xmlns:xlink="http://www.w3.org/1999/xlink"
      class="freesewing"
-     viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}"
-     width="${viewBoxWidth}mm"
-     height="${viewBoxHeight}mm">
-  ${styles}
+     viewBox="0 0 ${canvasWidth} ${canvasHeight}"
+     width="${canvasWidth}mm"
+     height="${canvasHeight}mm">
   ${defs}
+  ${styles}
   ${clonedGroup.outerHTML}
   ${tileMarker}
 </svg>`;
