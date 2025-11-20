@@ -11,13 +11,26 @@ async function main() {
 
     const args = process.argv.slice(2);
     const testNumber = args[0];
+    const customInputPath = args[1];
     
     // Path to the test SVG file
-    const inputSvgPath = path.join(
-      __dirname,
-      '../../src/freesewing/output/Brian body block - Tiago Huber - 13 nov 2025.svg'
-      //'../../src/freesewing/output/aaron-pattern-2025-10-11.svg'
-    );
+    let inputSvgPath: string;
+    
+    if (customInputPath) {
+      // Check if it's an absolute path or relative
+      if (path.isAbsolute(customInputPath)) {
+        inputSvgPath = customInputPath;
+      } else {
+        inputSvgPath = path.resolve(process.cwd(), customInputPath);
+      }
+    } else {
+      inputSvgPath = path.join(
+        __dirname,
+        '../../src/freesewing/output/Lumira Leggings - Tiago Huber - 20 nov 2025.svg'
+      );
+    }
+    
+    const baseFileName = path.basename(inputSvgPath, '.svg').replace(/\s+/g, '-').toLowerCase();
     
     console.log(`Reading SVG from: ${inputSvgPath}`);
     
@@ -81,7 +94,7 @@ async function main() {
       await splitAndSavePattern(
         svgContent,
         outputDir,
-        'brian-body-block',
+        baseFileName,
         {
           maxWidth: 1260,
           maxHeight: 860,
@@ -124,7 +137,7 @@ async function main() {
       await splitAndSavePattern(
         svgContent,
         outputDir,
-        'brian-body-block-separate',
+        `${baseFileName}-separate`,
         {
           maxWidth: 1260,
           maxHeight: 860,
@@ -150,7 +163,7 @@ async function main() {
       await splitAndSavePattern(
         svgContent,
         outputDir,
-        'brian-body-block-paired',
+        `${baseFileName}-paired`,
         {
           maxWidth: 1260,
           maxHeight: 860,

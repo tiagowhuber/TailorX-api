@@ -843,7 +843,12 @@ export async function splitAndSavePattern(
   
   // Save each piece
   for (const piece of result.pieces) {
-    const fileName = `${baseFileName}-piece-${piece.printOrder}-${piece.name.replace(/\s+/g, '-')}.svg`;
+    // Sanitize filename: replace spaces with dashes, remove invalid chars
+    const sanitizedName = piece.name
+      .replace(/\s+/g, '-')
+      .replace(/[\\/:*?"<>|]/g, '_');
+      
+    const fileName = `${baseFileName}-piece-${piece.printOrder}-${sanitizedName}.svg`;
     const filePath = path.join(outputDir, fileName);
     
     await fs.writeFile(filePath, piece.svg, 'utf-8');
