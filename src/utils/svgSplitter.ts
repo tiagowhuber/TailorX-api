@@ -293,6 +293,7 @@ function extractPatternPieces(document: Document): PatternPiece[] {
 function groupSmallPieces(pieces: PatternPiece[], config: SplitterConfig): PieceGroup[] {
   const groups: PieceGroup[] = [];
   const used = new Set<number>();
+  const gap = 20; // 20mm gap between pieces
   
   // Sort pieces by height (tallest first) for better packing
   const sortedIndices = pieces
@@ -335,25 +336,15 @@ function groupSmallPieces(pieces: PatternPiece[], config: SplitterConfig): Piece
       const candidateIndex = candidate.index;
       
       // Try placing side by side (horizontal)
-      const newWidthHorizontal = currentWidth + candidatePiece.boundingBox.width;
+      const newWidthHorizontal = currentWidth + candidatePiece.boundingBox.width + gap;
       const newHeightHorizontal = Math.max(currentHeight, candidatePiece.boundingBox.height);
       
-      // Try stacking vertically
-      const newWidthVertical = Math.max(currentWidth, candidatePiece.boundingBox.width);
-      const newHeightVertical = currentHeight + candidatePiece.boundingBox.height;
-      
-      // Check if either arrangement fits
+      // Check if arrangement fits
       if (newWidthHorizontal <= config.maxWidth && newHeightHorizontal <= config.maxHeight) {
         // Horizontal fit
         groupPieces.push(candidatePiece);
         currentWidth = newWidthHorizontal;
         currentHeight = newHeightHorizontal;
-        used.add(candidateIndex);
-      } else if (newWidthVertical <= config.maxWidth && newHeightVertical <= config.maxHeight) {
-        // Vertical fit
-        groupPieces.push(candidatePiece);
-        currentWidth = newWidthVertical;
-        currentHeight = newHeightVertical;
         used.add(candidateIndex);
       }
     }
@@ -659,35 +650,39 @@ function createGroupedPieceSVG(
   // Add extra horizontal margin
   const horizontalMargin = margin * 10;
   const verticalMargin = margin;
+  const gap = 20; // 20mm gap between pieces
   
-  // Calculate the overall bounding box for all pieces
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
+  // Calculate layout (horizontal)
+  let currentX = 0;
+  let maxHeight = 0;
   
-  for (const piece of pieces) {
-    minX = Math.min(minX, piece.boundingBox.minX);
-    minY = Math.min(minY, piece.boundingBox.minY);
-    maxX = Math.max(maxX, piece.boundingBox.maxX);
-    maxY = Math.max(maxY, piece.boundingBox.maxY);
-  }
+  const positionedPieces = pieces.map(piece => {
+    const x = currentX;
+    currentX += piece.boundingBox.width + gap;
+    maxHeight = Math.max(maxHeight, piece.boundingBox.height);
+    
+    return {
+      piece,
+      targetX: x,
+      targetY: 0 // Align top
+    };
+  });
   
-  const totalWidth = maxX - minX;
-  const totalHeight = maxY - minY;
+  const totalWidth = currentX - gap;
+  const totalHeight = maxHeight;
   
   // Calculate canvas dimensions with margin
   const canvasWidth = totalWidth + horizontalMargin * 2;
   const canvasHeight = totalHeight + verticalMargin * 2;
   
   // Clone and position all pieces
-  const groupedElements = pieces.map(piece => {
+  const groupedElements = positionedPieces.map(({ piece, targetX, targetY }) => {
     const clonedGroup = piece.groupElement.cloneNode(true) as Element;
     const existingTransform = clonedGroup.getAttribute('transform') || '';
     
     // Translate to position relative to overall bounding box
-    const translateX = horizontalMargin - minX;
-    const translateY = verticalMargin - minY;
+    const translateX = (horizontalMargin + targetX) - piece.boundingBox.minX;
+    const translateY = (verticalMargin + targetY) - piece.boundingBox.minY;
     
     const newTransform = `translate(${translateX}, ${translateY}) ${existingTransform}`.trim();
     clonedGroup.setAttribute('transform', newTransform);
