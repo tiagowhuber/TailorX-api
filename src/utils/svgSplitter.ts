@@ -293,7 +293,6 @@ function extractPatternPieces(document: Document): PatternPiece[] {
 function groupSmallPieces(pieces: PatternPiece[], config: SplitterConfig): PieceGroup[] {
   const groups: PieceGroup[] = [];
   const used = new Set<number>();
-  const gap = 20; // 20mm gap between pieces
   
   // Sort pieces by height (tallest first) for better packing
   const sortedIndices = pieces
@@ -336,15 +335,25 @@ function groupSmallPieces(pieces: PatternPiece[], config: SplitterConfig): Piece
       const candidateIndex = candidate.index;
       
       // Try placing side by side (horizontal)
-      const newWidthHorizontal = currentWidth + candidatePiece.boundingBox.width + gap;
+      const newWidthHorizontal = currentWidth + candidatePiece.boundingBox.width;
       const newHeightHorizontal = Math.max(currentHeight, candidatePiece.boundingBox.height);
       
-      // Check if arrangement fits
+      // Try stacking vertically
+      const newWidthVertical = Math.max(currentWidth, candidatePiece.boundingBox.width);
+      const newHeightVertical = currentHeight + candidatePiece.boundingBox.height;
+      
+      // Check if either arrangement fits
       if (newWidthHorizontal <= config.maxWidth && newHeightHorizontal <= config.maxHeight) {
         // Horizontal fit
         groupPieces.push(candidatePiece);
         currentWidth = newWidthHorizontal;
         currentHeight = newHeightHorizontal;
+        used.add(candidateIndex);
+      } else if (newWidthVertical <= config.maxWidth && newHeightVertical <= config.maxHeight) {
+        // Vertical fit
+        groupPieces.push(candidatePiece);
+        currentWidth = newWidthVertical;
+        currentHeight = newHeightVertical;
         used.add(candidateIndex);
       }
     }
@@ -650,39 +659,35 @@ function createGroupedPieceSVG(
   // Add extra horizontal margin
   const horizontalMargin = margin * 10;
   const verticalMargin = margin;
-  const gap = 20; // 20mm gap between pieces
   
-  // Calculate layout (horizontal)
-  let currentX = 0;
-  let maxHeight = 0;
+  // Calculate the overall bounding box for all pieces
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
   
-  const positionedPieces = pieces.map(piece => {
-    const x = currentX;
-    currentX += piece.boundingBox.width + gap;
-    maxHeight = Math.max(maxHeight, piece.boundingBox.height);
-    
-    return {
-      piece,
-      targetX: x,
-      targetY: 0 // Align top
-    };
-  });
+  for (const piece of pieces) {
+    minX = Math.min(minX, piece.boundingBox.minX);
+    minY = Math.min(minY, piece.boundingBox.minY);
+    maxX = Math.max(maxX, piece.boundingBox.maxX);
+    maxY = Math.max(maxY, piece.boundingBox.maxY);
+  }
   
-  const totalWidth = currentX - gap;
-  const totalHeight = maxHeight;
+  const totalWidth = maxX - minX;
+  const totalHeight = maxY - minY;
   
   // Calculate canvas dimensions with margin
   const canvasWidth = totalWidth + horizontalMargin * 2;
   const canvasHeight = totalHeight + verticalMargin * 2;
   
   // Clone and position all pieces
-  const groupedElements = positionedPieces.map(({ piece, targetX, targetY }) => {
+  const groupedElements = pieces.map(piece => {
     const clonedGroup = piece.groupElement.cloneNode(true) as Element;
     const existingTransform = clonedGroup.getAttribute('transform') || '';
     
     // Translate to position relative to overall bounding box
-    const translateX = (horizontalMargin + targetX) - piece.boundingBox.minX;
-    const translateY = (verticalMargin + targetY) - piece.boundingBox.minY;
+    const translateX = horizontalMargin - minX;
+    const translateY = verticalMargin - minY;
     
     const newTransform = `translate(${translateX}, ${translateY}) ${existingTransform}`.trim();
     clonedGroup.setAttribute('transform', newTransform);
@@ -843,12 +848,7 @@ export async function splitAndSavePattern(
   
   // Save each piece
   for (const piece of result.pieces) {
-    // Sanitize filename: replace spaces with dashes, remove invalid chars
-    const sanitizedName = piece.name
-      .replace(/\s+/g, '-')
-      .replace(/[\\/:*?"<>|]/g, '_');
-      
-    const fileName = `${baseFileName}-piece-${piece.printOrder}-${sanitizedName}.svg`;
+    const fileName = `${baseFileName}-piece-${piece.printOrder}-${piece.name.replace(/\s+/g, '-')}.svg`;
     const filePath = path.join(outputDir, fileName);
     
     await fs.writeFile(filePath, piece.svg, 'utf-8');
