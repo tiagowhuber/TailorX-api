@@ -2,9 +2,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" 
      xmlns:xlink="http://www.w3.org/1999/xlink"
      class="freesewing"
-     viewBox="0 0 617.69 726"
-     width="617.69mm"
-     height="726mm">
+     viewBox="0 0 1152.4496469817557 1426"
+     width="1152.4496469817557mm"
+     height="1426mm">
   <style type="text/css"><![CDATA[
 /* Sample classes */
 svg.freesewing path.sample {
@@ -303,7 +303,7 @@ svg.freesewing path.gridbox {
   <path class="gridline-xs" d="M 0 5 L 100 5 M 0 15 L 100 15 M 0 25 L 100 25 M 0 35 L 100 35 M 0 45 L 100 45 M 0 55 L 100 55 M 0 65 L 100 65 M 0 75 L 100 75 M 0 85 L 100 85 M 0 95 L 100 95" />
 </pattern>" grid_brian.back="<pattern id="grid_brian.back" xlink:href="#grid" x="0" y="641" />'" grid_brian.front="<pattern id="grid_brian.front" xlink:href="#grid" x="0" y="641" />'" grid_brian.sleeve="<pattern id="grid_brian.sleeve" xlink:href="#grid" x="0" y="0" />'"
 </defs>
-  <g id="fs-stack-brian.back" transform="translate(-536.6346469817556, 0) translate(666.6346469817556, 50)">
+  <g id="fs-stack-brian.back" transform="translate(-1.875, 0) translate(666.6346469817556, 50)">
 
 <!-- Start of group #fs-stack-brian.back-part-brian.back -->
 <g id="fs-stack-brian.back-part-brian.back" transform="translate(-91.875, 0)">
@@ -396,12 +396,110 @@ svg.freesewing path.gridbox {
 </g>
 <!-- end of group #fs-stack-brian.back-part-brian.back -->
 </g>
+  <g id="fs-stack-brian.front" transform="translate(-1.875, 0) translate(141.875, 750)">
+
+<!-- Start of group #fs-stack-brian.front-part-brian.front -->
+<g id="fs-stack-brian.front-part-brian.front" transform="translate(-91.875, 0)">
+<path class="grid" style="fill: url(#grid_brian.front)" id="fs-45" d="M -40,-40 L -40,666 L 387.69,666 L 387.69,-40 z" />
+<path class="fabric" id="fs-46" d="M 0,67.69 L 0,641 L 317.69,641 L 317.69,266.7 C 297.19,266.7 268.22,251.16 259.73,242.66 C 242.73,225.67 233.48,196.59 233.48,150.51 C 233.48,92.41 235.27,56.96 240.5,34.31 L 91.88,0 C 81.72,44 41.94,67.69 0,67.69" />
+<path class="fabric sa" id="fs-47" d="M 0,651 L 317.69,651 L 327.69,641 L 327.69,266.7 L 317.69,256.7 C 312.6,256.7 306.91,255.5 301.22,253.73 C 292.86,251.12 284.5,247.22 277.78,243.33 C 272.97,240.54 269.02,237.82 266.8,235.59 C 251.11,219.9 243.48,192.69 243.48,150.51 C 243.48,93.55 245.12,58.77 250.24,36.56 L 242.75,24.57 L 94.12,-9.74 L 82.13,-2.25 C 75.52,26.39 54.64,45.2 29.39,53.21 C 20.04,56.18 10.09,57.69 0,57.69 L 0,67.69M 0,641 L 0,651" />
+<path class="note" marker-start="url(#cutonfoldFrom)" marker-end="url(#cutonfoldTo)" data-text="plugin-annotations:cutOnFoldAndGrainline" data-text-class="center fill-note" id="fs-48" d="M 0,96.35 L 15,96.35 L 15,612.33 L 0,612.33" />
+<text><textpath xlink:href="#fs-48" startOffset="50%"><tspan class="center fill-note">plugin-annotations:cutOnFoldAndGrainline</tspan></textpath>
+</text>
+<path class="contrast help" id="fs-49" d="M 0,230 L 317.69,230" />
+<path class="hidden" data-text-dy="-1" data-text-class="center contrast help" data-text="brian:chestLine              brian:chestLine              brian:chestLine              brian:chestLine              brian:chestLine              brian:chestLine              brian:chestLine              brian:chestLine              brian:chestLine              brian:chestLine              brian:chestLine" id="fs-50" d="M 0,230 L 317.69,230" />
+<text><textpath xlink:href="#fs-50" startOffset="50%"><tspan dy="-1" class="center contrast help">brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:chestLine</tspan></textpath>
+</text>
+<path class="contrast help" id="fs-51" d="M 0,502 L 317.69,502" />
+<path class="hidden" data-text-dy="-1" data-text-class="center contrast help" data-text="brian:waistLine              brian:waistLine              brian:waistLine              brian:waistLine              brian:waistLine              brian:waistLine              brian:waistLine              brian:waistLine              brian:waistLine              brian:waistLine              brian:waistLine" id="fs-52" d="M 0,502 L 317.69,502" />
+<text><textpath xlink:href="#fs-52" startOffset="50%"><tspan dy="-1" class="center contrast help">brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine &#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160; brian:waistLine</tspan></textpath>
+</text>
+<path class="mark" data-text="27.86cm" data-text-class="fill-mark center" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-53" d="M 317.69,241.7 C 313.97,241.7 309.83,240.7 305.68,239.41 C 298.41,237.14 291.14,233.74 285.31,230.35 C 281.89,228.37 278.99,226.57 277.4,224.99 C 263.67,211.25 258.48,186.86 258.48,150.51 C 258.48,95.26 259.88,61.48 264.86,39.94" />
+<text><textpath xlink:href="#fs-53" startOffset="50%"><tspan class="fill-mark center">27.86cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-54" d="M 317.69,266.7 L 317.69,241.7" />
+<path class="mark dotted" id="fs-55" d="M 240.5,34.31 L 264.86,39.94" />
+<path class="mark" data-text="11.66cm" data-text-class="fill-mark center" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-56" d="M 218.48,150.51 C 218.48,90.7 220.51,54.24 225.88,30.94" />
+<text><textpath xlink:href="#fs-56" startOffset="50%"><tspan class="fill-mark center">11.66cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-57" d="M 233.48,150.51 L 218.48,150.51" />
+<path class="mark dotted" id="fs-58" d="M 240.5,34.31 L 225.88,30.94" />
+<path class="mark dotted" id="fs-59" d="M 317.69,641 L 342.69,641" />
+<path class="mark dotted" id="fs-60" d="M 317.69,266.7 L 342.69,266.7" />
+<path class="mark" data-text="37.43cm" data-text-class="fill-mark center" data-macro-id="hHemToArmhole" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-61" d="M 342.69,641 L 342.69,266.7" />
+<text><textpath xlink:href="#fs-61" startOffset="50%"><tspan class="fill-mark center">37.43cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-62" d="M 317.69,641 L 357.69,641" />
+<path class="mark dotted" id="fs-63" d="M 233.48,150.51 L 357.69,150.51" />
+<path class="mark" data-text="49.05cm" data-text-class="fill-mark center" data-macro-id="hHemToArmholePitch" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-64" d="M 357.69,641 L 357.69,150.51" />
+<text><textpath xlink:href="#fs-64" startOffset="50%"><tspan class="fill-mark center">49.05cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-65" d="M 317.69,641 L 372.69,641" />
+<path class="mark dotted" id="fs-66" d="M 240.5,34.31 L 372.69,34.31" />
+<path class="mark" data-text="60.67cm" data-text-class="fill-mark center" data-macro-id="hHemToShoulder" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-67" d="M 372.69,641 L 372.69,34.31" />
+<text><textpath xlink:href="#fs-67" startOffset="50%"><tspan class="fill-mark center">60.67cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-68" d="M 317.69,641 L 387.69,641" />
+<path class="mark dotted" id="fs-69" d="M 91.88,0 L 387.69,0" />
+<path class="mark" data-text="64.1cm" data-text-class="fill-mark center" data-macro-id="hTotal" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-70" d="M 387.69,641 L 387.69,0" />
+<text><textpath xlink:href="#fs-70" startOffset="50%"><tspan class="fill-mark center">64.1cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-71" d="M 91.88,0 L 97.5,-24.36" />
+<path class="mark dotted" id="fs-72" d="M 240.5,34.31 L 246.12,9.95" />
+<path class="mark" data-text="15.25cm" data-text-class="fill-mark center" data-macro-id="lShoulder" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-73" d="M 97.5,-24.36 L 246.12,9.95" />
+<text><textpath xlink:href="#fs-73" startOffset="50%"><tspan class="fill-mark center">15.25cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-74" d="M 0,641 L 0,666" />
+<path class="mark dotted" id="fs-75" d="M 317.69,641 L 317.69,666" />
+<path class="mark" data-text="31.77cm" data-text-class="fill-mark center" data-macro-id="wHem" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-76" d="M 0,666 L 317.69,666" />
+<text><textpath xlink:href="#fs-76" startOffset="50%"><tspan class="fill-mark center">31.77cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-77" d="M 0,641 L -25,641" />
+<path class="mark dotted" id="fs-78" d="M 0,502 L -25,502" />
+<path class="mark" data-text="13.9cm" data-text-class="fill-mark center" data-macro-id="hHemToWaist" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-79" d="M -25,641 L -25,502" />
+<text><textpath xlink:href="#fs-79" startOffset="50%"><tspan class="fill-mark center">13.9cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-80" d="M 0,641 L -40,641" />
+<path class="mark dotted" id="fs-81" d="M 0,67.69 L -40,67.69" />
+<path class="mark" data-text="57.33cm" data-text-class="fill-mark center" data-macro-id="hHemToNeckOpeningBottom" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-82" d="M -40,641 L -40,67.69" />
+<text><textpath xlink:href="#fs-82" startOffset="50%"><tspan class="fill-mark center">57.33cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-83" d="M 0,67.69 L 0,-25" />
+<path class="mark dotted" id="fs-84" d="M 91.88,0 L 91.88,-25" />
+<path class="mark" data-text="9.19cm" data-text-class="fill-mark center" data-macro-id="wCFrontToHps" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-85" d="M 0,-25 L 91.88,-25" />
+<text><textpath xlink:href="#fs-85" startOffset="50%"><tspan class="fill-mark center">9.19cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-86" d="M 0,21 L 0,-40" />
+<path class="mark dotted" id="fs-87" d="M 240.5,34.31 L 240.5,-40" />
+<path class="mark" data-text="24.05cm" data-text-class="fill-mark center" data-macro-id="lShoulder" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-88" d="M 0,-40 L 240.5,-40" />
+<text><textpath xlink:href="#fs-88" startOffset="50%"><tspan class="fill-mark center">24.05cm</tspan></textpath>
+</text>
+<path class="mark dotted" id="fs-89" d="M 0,67.69 L 0,-40" />
+<path class="mark dotted" id="fs-90" d="M 240.5,34.31 L 240.5,-40" />
+<path class="mark" data-text="24.05cm" data-text-class="fill-mark center" data-macro-id="WCFrontToShoulder" marker-start="url(#dimensionFrom)" marker-end="url(#dimensionTo)" id="fs-91" d="M 0,-40 L 240.5,-40" />
+<text><textpath xlink:href="#fs-91" startOffset="50%"><tspan class="fill-mark center">24.05cm</tspan></textpath>
+</text>
+<text class="text-4xl fill-note font-bold left" transform="matrix(1, 0, 0, 1, 0, 0) rotate(0 117.845 150.5063924530184)" x="117.85" y="150.51"><tspan>1 </tspan>
+</text>
+<text class="text-sm fill-current left" transform="matrix(1, 0, 0, 1, 0, 0) rotate(0 117.845 150.5063924530184)" x="117.85" y="154.51"><tspan>Thursday, Nov 13, 2025 </tspan>
+</text>
+<text transform="matrix(1, 0, 0, 1, 0, 0) rotate(0 117.845 150.5063924530184)" class="text-lg fill-current font-bold left" x="117.85" y="166.51"><tspan>front </tspan>
+</text>
+<text class="fill-note left" transform="matrix(1, 0, 0, 1, 0, 0) rotate(0 117.845 150.5063924530184)" x="117.85" y="174.51"><tspan>FreeSewing Brian body block v4.4.0 ( ephemeral ) </tspan>
+</text>
+<text class="text-md fill-current left" transform="matrix(1, 0, 0, 1, 0, 0) rotate(0 117.845 150.5063924530184)" x="117.85" y="182.51"><tspan>plugin-annotations:cut,1,plugin-annotations:onFold,plugin-annotations:from,plugin-annotations:fabric,</tspan><tspan x="117.85" dy="8"> </tspan>
+</text>
+<use x="117.85" y="250.51" xlink:href="#logo" transform="translate(117.85, 250.51) scale(1) translate(-117.85, -250.51)" />
+<use x="233.48" y="150.51" xlink:href="#notch" transform="translate(233.48, 150.51) scale(1) translate(-233.48, -150.51)" />
+</g>
+<!-- end of group #fs-stack-brian.front-part-brian.front -->
+</g>
   <!-- Dimension label -->
-  <text x="308.845" y="721" 
+  <text x="576.2248234908778" y="1421" 
         text-anchor="middle" 
         font-family="Arial, sans-serif" 
         font-size="12" 
         fill="#666666">
-    41.8 cm × 70.6 cm
+    95.2 cm × 140.6 cm
   </text>
 </svg>

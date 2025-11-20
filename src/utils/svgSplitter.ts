@@ -7,6 +7,7 @@ interface SplitterConfig {
   maxWidth: number; // in mm
   maxHeight: number; // in mm
   margin: number; // margin to add around pieces in mm
+  pairingMode: 'separate' | 'paired'; // 'separate': one piece per SVG, 'paired': group small pieces together
 }
 
 /**
@@ -59,6 +60,17 @@ interface PieceTile {
 }
 
 /**
+ * A group of pieces combined on one sheet
+ */
+interface PieceGroup {
+  pieces: PatternPiece[];
+  dimensions: {
+    width: number;
+    height: number;
+  };
+}
+
+/**
  * Final output with numbered pieces ready for printing
  */
 interface SplitPatternResult {
@@ -88,6 +100,7 @@ const DEFAULT_CONFIG: SplitterConfig = {
   maxWidth: 1260, // 126cm in mm
   maxHeight: 860, // 86cm in mm
   margin: 50, // 50mm margin for annotations
+  pairingMode: 'paired', // default to intelligent pairing
 };
 
 /**
@@ -124,7 +137,12 @@ export function splitPattern(
   const defs = extractDefs(document);
   const styles = extractStyles(document);
   
-  // Process each piece and check if subdivision is needed
+  // Group small pieces together when possible (or keep separate based on config)
+  const pieceGroups = finalConfig.pairingMode === 'paired'
+    ? groupSmallPieces(patternPieces, finalConfig)
+    : patternPieces.map(piece => ({ pieces: [piece], dimensions: { width: piece.boundingBox.width, height: piece.boundingBox.height } }));
+  
+  // Process each piece group and check if subdivision is needed
   const processedPieces: Array<{
     id: string;
     name: string;
@@ -134,40 +152,60 @@ export function splitPattern(
     tileInfo?: { tileNumber: number; totalTiles: number };
   }> = [];
   
-  for (const piece of patternPieces) {
-    const pieceWidth = piece.boundingBox.width;
-    const pieceHeight = piece.boundingBox.height;
-    
-    // Check if piece fits within constraints
-    if (pieceWidth <= finalConfig.maxWidth && pieceHeight <= finalConfig.maxHeight) {
-      // Piece fits - create single SVG
-      const svg = createPieceSVG(piece, defs, styles, finalConfig.margin);
+  for (const group of pieceGroups) {
+    if (group.pieces.length === 1) {
+      // Single piece - process normally
+      const piece = group.pieces[0];
+      if (!piece) continue;
+      
+      const pieceWidth = piece.boundingBox.width;
+      const pieceHeight = piece.boundingBox.height;
+      
+      // Check if piece fits within constraints
+      if (pieceWidth <= finalConfig.maxWidth && pieceHeight <= finalConfig.maxHeight) {
+        // Piece fits - create single SVG
+        const svg = createPieceSVG(piece, defs, styles, finalConfig.margin);
+        processedPieces.push({
+          id: piece.id,
+          name: piece.name,
+          svg,
+          dimensions: {
+            width: Math.round(pieceWidth * 10) / 10,
+            height: Math.round(pieceHeight * 10) / 10,
+          },
+          isTiled: false,
+        });
+      } else {
+        // Piece is too large - subdivide into tiles
+        const tiles = subdividePiece(piece, defs, styles, finalConfig);
+        for (const tile of tiles) {
+          processedPieces.push({
+            id: `${tile.pieceId}-tile-${tile.tileIndex}`,
+            name: `${tile.pieceName} (Tile ${tile.tileIndex}/${tile.totalTiles})`,
+            svg: tile.svg,
+            dimensions: tile.dimensions,
+            isTiled: true,
+            tileInfo: {
+              tileNumber: tile.tileIndex,
+              totalTiles: tile.totalTiles,
+            },
+          });
+        }
+      }
+    } else {
+      // Multiple pieces grouped together
+      const svg = createGroupedPieceSVG(group.pieces, defs, styles, finalConfig.margin);
+      const pieceNames = group.pieces.map(p => p.name).join(' + ');
       processedPieces.push({
-        id: piece.id,
-        name: piece.name,
+        id: group.pieces.map(p => p.id).join('-'),
+        name: pieceNames,
         svg,
         dimensions: {
-          width: Math.round(pieceWidth * 10) / 10,
-          height: Math.round(pieceHeight * 10) / 10,
+          width: Math.round(group.dimensions.width * 10) / 10,
+          height: Math.round(group.dimensions.height * 10) / 10,
         },
         isTiled: false,
       });
-    } else {
-      // Piece is too large - subdivide into tiles
-      const tiles = subdividePiece(piece, defs, styles, finalConfig);
-      for (const tile of tiles) {
-        processedPieces.push({
-          id: `${tile.pieceId}-tile-${tile.tileIndex}`,
-          name: `${tile.pieceName} (Tile ${tile.tileIndex}/${tile.totalTiles})`,
-          svg: tile.svg,
-          dimensions: tile.dimensions,
-          isTiled: true,
-          tileInfo: {
-            tileNumber: tile.tileIndex,
-            totalTiles: tile.totalTiles,
-          },
-        });
-      }
     }
   }
   
@@ -246,6 +284,90 @@ function extractPatternPieces(document: Document): PatternPiece[] {
   });
   
   return pieces;
+}
+
+/**
+ * Group small pieces together to fit on single sheets (bin packing)
+ * Uses a simple row-based packing algorithm
+ */
+function groupSmallPieces(pieces: PatternPiece[], config: SplitterConfig): PieceGroup[] {
+  const groups: PieceGroup[] = [];
+  const used = new Set<number>();
+  
+  // Sort pieces by height (tallest first) for better packing
+  const sortedIndices = pieces
+    .map((p, i) => ({ piece: p, index: i }))
+    .sort((a, b) => b.piece.boundingBox.height - a.piece.boundingBox.height);
+  
+  for (let i = 0; i < sortedIndices.length; i++) {
+    const current = sortedIndices[i];
+    if (!current || used.has(current.index)) continue;
+    
+    const firstPiece = current.piece;
+    const firstIndex = current.index;
+    
+    // If piece is too large to pair, create single-piece group
+    if (firstPiece.boundingBox.width > config.maxWidth || 
+        firstPiece.boundingBox.height > config.maxHeight) {
+      groups.push({
+        pieces: [firstPiece],
+        dimensions: {
+          width: firstPiece.boundingBox.width,
+          height: firstPiece.boundingBox.height,
+        },
+      });
+      used.add(firstIndex);
+      continue;
+    }
+    
+    // Try to find pieces that can fit on the same sheet
+    const groupPieces: PatternPiece[] = [firstPiece];
+    let currentWidth = firstPiece.boundingBox.width;
+    let currentHeight = firstPiece.boundingBox.height;
+    used.add(firstIndex);
+    
+    // Try to add more pieces
+    for (let j = i + 1; j < sortedIndices.length; j++) {
+      const candidate = sortedIndices[j];
+      if (!candidate || used.has(candidate.index)) continue;
+      
+      const candidatePiece = candidate.piece;
+      const candidateIndex = candidate.index;
+      
+      // Try placing side by side (horizontal)
+      const newWidthHorizontal = currentWidth + candidatePiece.boundingBox.width;
+      const newHeightHorizontal = Math.max(currentHeight, candidatePiece.boundingBox.height);
+      
+      // Try stacking vertically
+      const newWidthVertical = Math.max(currentWidth, candidatePiece.boundingBox.width);
+      const newHeightVertical = currentHeight + candidatePiece.boundingBox.height;
+      
+      // Check if either arrangement fits
+      if (newWidthHorizontal <= config.maxWidth && newHeightHorizontal <= config.maxHeight) {
+        // Horizontal fit
+        groupPieces.push(candidatePiece);
+        currentWidth = newWidthHorizontal;
+        currentHeight = newHeightHorizontal;
+        used.add(candidateIndex);
+      } else if (newWidthVertical <= config.maxWidth && newHeightVertical <= config.maxHeight) {
+        // Vertical fit
+        groupPieces.push(candidatePiece);
+        currentWidth = newWidthVertical;
+        currentHeight = newHeightVertical;
+        used.add(candidateIndex);
+      }
+    }
+    
+    groups.push({
+      pieces: groupPieces,
+      dimensions: {
+        width: currentWidth,
+        height: currentHeight,
+      },
+    });
+  }
+  
+  return groups;
 }
 
 /**
@@ -519,6 +641,78 @@ function createPieceSVG(piece: PatternPiece, defs: string, styles: string, margi
         font-size="12" 
         fill="#666666">
     ${Math.round(boundingBox.width / 10 * 10) / 10} cm × ${Math.round(boundingBox.height / 10 * 10) / 10} cm
+  </text>
+</svg>`;
+  
+  return svg;
+}
+
+/**
+ * Create an SVG with multiple pieces grouped together
+ */
+function createGroupedPieceSVG(
+  pieces: PatternPiece[], 
+  defs: string, 
+  styles: string, 
+  margin: number
+): string {
+  // Add extra horizontal margin
+  const horizontalMargin = margin * 10;
+  const verticalMargin = margin;
+  
+  // Calculate the overall bounding box for all pieces
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  
+  for (const piece of pieces) {
+    minX = Math.min(minX, piece.boundingBox.minX);
+    minY = Math.min(minY, piece.boundingBox.minY);
+    maxX = Math.max(maxX, piece.boundingBox.maxX);
+    maxY = Math.max(maxY, piece.boundingBox.maxY);
+  }
+  
+  const totalWidth = maxX - minX;
+  const totalHeight = maxY - minY;
+  
+  // Calculate canvas dimensions with margin
+  const canvasWidth = totalWidth + horizontalMargin * 2;
+  const canvasHeight = totalHeight + verticalMargin * 2;
+  
+  // Clone and position all pieces
+  const groupedElements = pieces.map(piece => {
+    const clonedGroup = piece.groupElement.cloneNode(true) as Element;
+    const existingTransform = clonedGroup.getAttribute('transform') || '';
+    
+    // Translate to position relative to overall bounding box
+    const translateX = horizontalMargin - minX;
+    const translateY = verticalMargin - minY;
+    
+    const newTransform = `translate(${translateX}, ${translateY}) ${existingTransform}`.trim();
+    clonedGroup.setAttribute('transform', newTransform);
+    
+    return clonedGroup.outerHTML;
+  }).join('\n  ');
+  
+  // Build the combined SVG
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" 
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     class="freesewing"
+     viewBox="0 0 ${canvasWidth} ${canvasHeight}"
+     width="${canvasWidth}mm"
+     height="${canvasHeight}mm">
+  ${styles}
+  ${defs}
+  ${groupedElements}
+  <!-- Dimension label -->
+  <text x="${canvasWidth / 2}" y="${canvasHeight - 5}" 
+        text-anchor="middle" 
+        font-family="Arial, sans-serif" 
+        font-size="12" 
+        fill="#666666">
+    ${Math.round(totalWidth / 10 * 10) / 10} cm × ${Math.round(totalHeight / 10 * 10) / 10} cm
   </text>
 </svg>`;
   
