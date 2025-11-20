@@ -165,8 +165,8 @@ async function main() {
         outputDir,
         `${baseFileName}-paired`,
         {
-          maxWidth: 1260,
-          maxHeight: 860,
+          maxWidth: 860,
+          maxHeight: 1260,
           margin: 10,
           pairingMode: 'paired'
         }

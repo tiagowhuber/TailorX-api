@@ -97,8 +97,8 @@ interface SplitPatternResult {
 }
 
 const DEFAULT_CONFIG: SplitterConfig = {
-  maxWidth: 1260, // 126cm in mm
-  maxHeight: 860, // 86cm in mm
+  maxWidth: 860, // 126cm in mm
+  maxHeight: 1260, // 86cm in mm
   margin: 50, // 50mm margin for annotations
   pairingMode: 'paired', // default to intelligent pairing
 };
@@ -848,7 +848,12 @@ export async function splitAndSavePattern(
   
   // Save each piece
   for (const piece of result.pieces) {
-    const fileName = `${baseFileName}-piece-${piece.printOrder}-${piece.name.replace(/\s+/g, '-')}.svg`;
+    // Sanitize filename to remove invalid characters
+    const safeName = piece.name
+      .replace(/\s+/g, '-')
+      .replace(/[\\/:*?"<>|]/g, '_');
+      
+    const fileName = `${baseFileName}-piece-${piece.printOrder}-${safeName}.svg`;
     const filePath = path.join(outputDir, fileName);
     
     await fs.writeFile(filePath, piece.svg, 'utf-8');
