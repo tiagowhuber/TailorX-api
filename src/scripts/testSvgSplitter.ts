@@ -26,7 +26,7 @@ async function main() {
     } else {
       inputSvgPath = path.join(
         __dirname,
-        '../../src/freesewing/output/Brian body block - Tiago Huber - 20 nov 2025.svg'
+        '../../src/freesewing/output/Brian body block - Tiago Huber - 25 nov 2025.svg'
       );
     }
     
