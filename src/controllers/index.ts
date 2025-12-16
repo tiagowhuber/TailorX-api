@@ -5,3 +5,4 @@ export * from './userMeasurementController';
 export * from './designController';
 export * from './patternController';
 export * from './orderController';
+export * from './userAddressController';

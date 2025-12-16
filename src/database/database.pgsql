@@ -14,6 +14,22 @@ CREATE TABLE users (
 
 CREATE INDEX idx_users_email ON users(email);
 
+-- User Addresses
+CREATE TABLE user_addresses (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    recipient_name VARCHAR(255),
+    street_address VARCHAR(255) NOT NULL,
+    apartment_unit VARCHAR(50),
+    comuna VARCHAR(100) NOT NULL,
+    region VARCHAR(100) NOT NULL,
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_user_addresses_user ON user_addresses(user_id);
+
 -- Measurement Types (e.g., chest, waist, hip, biceps, neck, etc.)
 CREATE TABLE measurement_types (
     id SERIAL PRIMARY KEY,
@@ -146,6 +162,9 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_addresses_updated_at BEFORE UPDATE ON user_addresses
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_user_measurements_updated_at BEFORE UPDATE ON user_measurements

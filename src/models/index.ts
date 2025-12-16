@@ -8,12 +8,14 @@ import Pattern from './Pattern';
 import Order from './Order';
 import OrderItem from './OrderItem';
 import OrderStatusHistory from './OrderStatusHistory';
+import UserAddress from './UserAddress';
 
 // Define associations
 // User associations
 User.hasMany(UserMeasurement, { foreignKey: 'user_id', as: 'measurements' });
 User.hasMany(Pattern, { foreignKey: 'user_id', as: 'patterns' });
 User.hasMany(Order, { foreignKey: 'user_id', as: 'orders' });
+User.hasMany(UserAddress, { foreignKey: 'user_id', as: 'addresses' });
 
 // MeasurementType associations
 MeasurementType.hasMany(UserMeasurement, { foreignKey: 'measurement_type_id', as: 'userMeasurements' });
@@ -48,6 +50,9 @@ OrderItem.belongsTo(Pattern, { foreignKey: 'pattern_id', as: 'pattern' });
 // OrderStatusHistory associations
 OrderStatusHistory.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 
+// UserAddress associations
+UserAddress.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 // Export models and sequelize instance
 export {
   sequelize,
@@ -60,6 +65,7 @@ export {
   Order,
   OrderItem,
   OrderStatusHistory,
+  UserAddress,
 };
 
 export default {
@@ -73,4 +79,5 @@ export default {
   Order,
   OrderItem,
   OrderStatusHistory,
+  UserAddress,
 };

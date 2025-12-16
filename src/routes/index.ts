@@ -7,6 +7,7 @@ import designRoutes from './designs';
 import patternRoutes from './patterns';
 import orderRoutes from './orders';
 import paymentRoutes from './payments';
+import userAddressRoutes from './userAddresses';
 
 const router = Router();
 
@@ -19,5 +20,6 @@ router.use('/designs', designRoutes);
 router.use('/patterns', patternRoutes);
 router.use('/orders', orderRoutes);
 router.use('/payments', paymentRoutes);
+router.use('/user-addresses', userAddressRoutes);
 
 export default router;
