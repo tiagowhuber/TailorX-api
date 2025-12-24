@@ -48,6 +48,7 @@ export const generateMeasurements = async (req: Request, res: Response) => {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const frontImage = files['front_image']?.[0];
     const sideImage = files['side_image']?.[0];
+    const armImage = files['arm_image']?.[0];
 
     if (!frontImage || !sideImage || !height_cm) {
       return res.status(400).json({ 
@@ -60,6 +61,9 @@ export const generateMeasurements = async (req: Request, res: Response) => {
     const formData = new FormData();
     formData.append('front_image', new Blob([frontImage.buffer as any], { type: frontImage.mimetype }), 'front.jpg');
     formData.append('side_image', new Blob([sideImage.buffer as any], { type: sideImage.mimetype }), 'side.jpg');
+    if (armImage) {
+      formData.append('arm_image', new Blob([armImage.buffer as any], { type: armImage.mimetype }), 'arm.jpg');
+    }
     formData.append('height_cm', height_cm.toString());
 
     // Call TailorVision API

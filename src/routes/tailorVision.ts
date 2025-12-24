@@ -10,7 +10,8 @@ router.post(
   authenticateToken, 
   upload.fields([
     { name: 'front_image', maxCount: 1 }, 
-    { name: 'side_image', maxCount: 1 }
+    { name: 'side_image', maxCount: 1 },
+    { name: 'arm_image', maxCount: 1 }
   ]), 
   generateMeasurements
 );
