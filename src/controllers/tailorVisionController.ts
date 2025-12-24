@@ -150,7 +150,10 @@ export const generateMeasurements = async (req: Request, res: Response) => {
         measurements: savedMeasurements,
         raw_measurements: measurements,
         warnings,
-        debug_images: result.debug_images // Pass these through if frontend wants to show them
+        debug_images: result.debug_images,
+        debug_mask_front: result.debug_mask_front,
+        debug_mask_side: result.debug_mask_side,
+        debug_mask_arm: result.debug_mask_arm
       }
     });
 
