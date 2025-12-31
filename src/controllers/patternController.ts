@@ -7,6 +7,7 @@ import {
   generatePatternName,
   extractRequiredMeasurementKeys,
 } from '../utils/freesewing';
+import { TailorFitService } from '../services/TailorFitService';
 
 export const getAllPatterns = async (req: Request, res: Response) => {
   try {
@@ -668,6 +669,41 @@ export const getPatternsByStatus = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error',
+    });
+  }
+};
+
+export const exportPatternToPLT = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const pattern = await Pattern.findByPk(id);
+    if (!pattern) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pattern not found',
+      });
+    }
+
+    if (!pattern.svg_data) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pattern has no SVG data',
+      });
+    }
+
+    const service = new TailorFitService();
+    const result = await service.process(pattern.svg_data);
+
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.send(result.content);
+
+  } catch (error) {
+    console.error('Export PLT error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during PLT export',
     });
   }
 };

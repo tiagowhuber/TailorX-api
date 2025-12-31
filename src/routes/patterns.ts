@@ -14,6 +14,7 @@ import {
   unarchivePattern,
   getPatternsByDesignId,
   getPatternsByStatus,
+  exportPatternToPLT,
 } from '../controllers/patternController';
 
 const router = Router();
@@ -56,5 +57,8 @@ router.put('/:id/archive', authenticateToken, archivePattern);
 
 // PUT /patterns/:id/unarchive - Unarchive pattern (change status back to draft) (protected)
 router.put('/:id/unarchive', authenticateToken, unarchivePattern);
+
+// POST /patterns/:id/export/plt - Export pattern to PLT (HPGL) format (protected)
+router.post('/:id/export/plt', authenticateToken, exportPatternToPLT);
 
 export default router;
