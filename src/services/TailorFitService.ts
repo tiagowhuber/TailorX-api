@@ -80,6 +80,12 @@ export class TailorFitService {
       const classAttr = path.getAttribute('class') || '';
       const idStr = path.getAttribute('id') || `path_${index}`;
 
+      // Only accept 'fabric sa'
+      if (!classAttr.includes('fabric sa')) {
+        console.log(`[SVG Debug] Ignored ${idStr} (Not 'fabric sa'. path_class: "${classAttr}")`);
+        return;
+      }
+
       // 1. Check if path is inside a definition or non-renderable container
       if (this.isInsideDef(path)) {
         console.log(`[SVG Debug] Ignored ${idStr} (inside defs/symbol)`);
@@ -141,9 +147,9 @@ export class TailorFitService {
 
   private hasIgnoredClass(element: any): boolean {
     const ignoredTerms = [
-        'grainline', 'note', 'mark', 'text', 'annotation', 'notch', 'cutonfold', 
+        'note', 'mark', 'text', 'annotation', 'notch', 'cutonfold', 
         'title', 'logo', 'scalebox', 'dimension', 'paperless', 'grid', 'layout',
-        'help', 'interface', 'sa', 'contrast', 'hidden'
+        'help', 'interface', 'contrast', 'hidden'
     ];
     
     let current = element;
