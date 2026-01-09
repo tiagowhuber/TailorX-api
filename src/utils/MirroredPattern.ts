@@ -29,19 +29,21 @@ export const createMirroredPattern = (BasePatternClass: any, pluginMirror: any) 
         const baseNames = ['front', 'back'];
 
         baseNames.forEach(baseName => {
-            // Find the actual part name that ends with the baseName
-            // e.g. 'brian.front' matches 'front'
-            const actualPartName = availablePartNames.find(name => 
+            // Find ALL matching part names
+            // e.g. both 'brian.front' and 'sven.front'
+            const matchingPartNames = availablePartNames.filter(name => 
                 name === baseName || name.endsWith(`.${baseName}`)
             );
 
-            if (actualPartName) {
-                console.log(`Found matching part: ${actualPartName} for ${baseName}`);
+            if (matchingPartNames.length > 0) {
+                console.log(`Found ${matchingPartNames.length} matching parts for ${baseName}:`, matchingPartNames);
+                
+                matchingPartNames.forEach(actualPartName => {
                 const part = parts[actualPartName];
                 
                 // Debug points
                 const pointKeys = Object.keys(part.points);
-                console.log(`Points in ${actualPartName}:`, pointKeys.filter(k => k.startsWith('cf') || k.startsWith('cb')));
+                // console.log(`Points in ${actualPartName}:`, pointKeys.filter(k => k.startsWith('cf') || k.startsWith('cb')));
 
                 // Determine mirror line points
                 let p1, p2;
@@ -111,6 +113,7 @@ export const createMirroredPattern = (BasePatternClass: any, pluginMirror: any) 
                      if (err.stack) console.error(err.stack);
                    }
                 }
+                });
             } else {
                  console.log(`Base part ${baseName} NOT found in available parts.`);
             }
