@@ -76,20 +76,43 @@ export class TailorFitService {
     const pieces: PatternPiece[] = [];
 
     let idCounter = 0;
-    Array.from(paths).forEach((path: any) => {
+    Array.from(paths).forEach((path: any, index) => {
       const classAttr = path.getAttribute('class') || '';
-      // Filter out non-cutting elements
-      if (this.shouldIgnore(classAttr)) {
+      const idStr = path.getAttribute('id') || `path_${index}`;
+
+      // 1. Check if path is inside a definition or non-renderable container
+      if (this.isInsideDef(path)) {
+        console.log(`[SVG Debug] Ignored ${idStr} (inside defs/symbol)`);
+        return;
+      }
+
+      // 2. Check for ignored classes on element or parents
+      if (this.hasIgnoredClass(path)) {
+        console.log(`[SVG Debug] Ignored ${idStr} (Ignored Class. path_class: "${classAttr}")`);
+        return;
+      }
+
+      // 3. Check for dashed lines (stroke-dasharray) on element or parents
+      if (this.isDashed(path)) {
+        console.log(`[SVG Debug] Ignored ${idStr} (Dashed Line. path_class: "${classAttr}")`);
         return;
       }
 
       const d = path.getAttribute('d');
-      if (!d) return;
+      if (!d) {
+        console.log(`[SVG Debug] Ignored ${idStr} (No d attribute)`);
+        return;
+      }
 
       const points = this.flattenCurves(d);
-      if (points.length < 2) return;
+      if (points.length < 2) {
+        console.log(`[SVG Debug] Ignored ${idStr} (Not enough points)`);
+        return;
+      }
 
       const bbox = this.calculateBBox(points);
+      
+      console.log(`[SVG Debug] Accepted ${idStr} (Class: "${classAttr}", Points: ${points.length})`);
       
       pieces.push({
         id: `piece_${idCounter++}`,
@@ -104,9 +127,62 @@ export class TailorFitService {
     return pieces;
   }
 
+  private isInsideDef(element: any): boolean {
+    let current = element.parentElement;
+    while (current) {
+        const tagName = current.tagName?.toLowerCase();
+        if (['defs', 'symbol', 'clippath', 'mask', 'marker', 'pattern'].includes(tagName)) {
+            return true;
+        }
+        current = current.parentElement;
+    }
+    return false;
+  }
+
+  private hasIgnoredClass(element: any): boolean {
+    const ignoredTerms = [
+        'grainline', 'note', 'mark', 'text', 'annotation', 'notch', 'cutonfold', 
+        'title', 'logo', 'scalebox', 'dimension', 'paperless', 'grid', 'layout',
+        'help', 'interface', 'sa', 'contrast', 'hidden'
+    ];
+    
+    let current = element;
+    while (current && current.getAttribute) {
+        const classAttr = current.getAttribute('class') || '';
+        // Split classes by whitespace to check individual words
+        const classes = classAttr.split(/\s+/);
+        
+        if (ignoredTerms.some(term => classes.some((c: string) => c.includes(term)))) {
+            return true;
+        }
+        current = current.parentElement;
+    }
+    return false;
+  }
+
+  private isDashed(element: any): boolean {
+    let current = element;
+    while (current && current.getAttribute) {
+        const dashArray = current.getAttribute('stroke-dasharray');
+        if (dashArray && dashArray !== 'none') {
+            return true;
+        }
+        
+        const style = current.getAttribute('style') || '';
+        if (style.includes('stroke-dasharray') && 
+            !style.includes('stroke-dasharray:none') && 
+            !style.includes('stroke-dasharray: none')) {
+            return true;
+        }
+        
+        current = current.parentElement;
+    }
+    return false;
+  }
+
   private shouldIgnore(className: string): boolean {
-    const ignored = ['grainline', 'note', 'mark', 'text', 'annotation', 'notch', 'cutonfold'];
-    return ignored.some(term => className.includes(term));
+    // Deprecated, logic moved to hasIgnoredClass
+    return false;
   }
 
   public flattenCurves(d: string): Point[] {
