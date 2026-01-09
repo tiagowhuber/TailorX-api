@@ -23,6 +23,7 @@
     "@freesewing/diana": "^4.4.0",
     "@freesewing/lumira": "^4.4.0",
     "@freesewing/plugin-annotations": "^4.4.0",
+    "@freesewing/plugin-mirror": "^4.4.0",
     "@freesewing/plugin-theme": "^4.4.0",
     "@freesewing/sven": "^4.4.0",
     "@types/bcryptjs": "^2.4.6",

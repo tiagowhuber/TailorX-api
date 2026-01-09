@@ -8,6 +8,7 @@
 // Import model types
 import type UserMeasurement from '../models/UserMeasurement';
 import type DesignMeasurement from '../models/DesignMeasurement';
+import { createMirroredPattern } from './MirroredPattern';
 
 interface FreeSewingMeasurements {
   [key: string]: number
@@ -103,6 +104,9 @@ async function getPatternClass(patternType: string) {
   // "Brian body block" -> "brian", "Aaron A-shirt" -> "aaron"
   const patternTypeLower = patternType.toLowerCase().trim();
   
+  // Check for mirrored request
+  const isMirrored = patternTypeLower.includes('mirrored');
+  
   // Extract the pattern code from common pattern name formats
   let patternCode = patternTypeLower;
   if (patternTypeLower.includes('brian')) {
@@ -119,46 +123,60 @@ async function getPatternClass(patternType: string) {
     patternCode = 'lumira';
   }
   
+  let PatternClass;
+
   try {
     switch (patternCode) {
       case 'aaron': {
-        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        // @ts-ignore
         const { Aaron } = await dynamicImport('@freesewing/aaron');
-        return Aaron;
+        PatternClass = Aaron;
+        break;
       }
       case 'brian': {
-        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        // @ts-ignore
         const { Brian } = await dynamicImport('@freesewing/brian');
-        return Brian;
+        PatternClass = Brian;
+        break;
       }
       case 'sven': {
-        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        // @ts-ignore
         const { Sven } = await dynamicImport('@freesewing/sven');
-        return Sven;
+        PatternClass = Sven;
+        break;
       }
       case 'charlie': {
-        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        // @ts-ignore
         const { Charlie } = await dynamicImport('@freesewing/charlie');
-        return Charlie;
+        PatternClass = Charlie;
+        break;
       }
       case 'diana': {
-        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        // @ts-ignore
         const { Diana } = await dynamicImport('@freesewing/diana');
-        return Diana;
+        PatternClass = Diana;
+        break;
       }
       case 'lumira': {
-        // @ts-ignore - FreeSewing modules are ESM and may not have type declarations
+        // @ts-ignore
         const { Lumira } = await dynamicImport('@freesewing/lumira');
-        return Lumira;
+        PatternClass = Lumira;
+        break;
       }
-      // Add more patterns as they are installed:
-      // case 'other-pattern': {
-      //   const { OtherPattern } = await dynamicImport('@freesewing/other-pattern');
-      //   return OtherPattern;
-      // }
       default:
         throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven, charlie, diana, lumira`);
     }
+
+    if (isMirrored) {
+      console.log(`Wrapping ${patternCode} with mirror plugin...`);
+      // @ts-ignore
+      const { pluginMirror } = await dynamicImport('@freesewing/plugin-mirror');
+      // Wrap the pattern class
+      PatternClass = createMirroredPattern(PatternClass, pluginMirror);
+    }
+
+    return PatternClass;
+
   } catch (error: any) {
     if (error.message.includes('Unsupported pattern type')) {
       throw error;
