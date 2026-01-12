@@ -291,6 +291,103 @@ export function extractRequiredMeasurementKeys(
  * @param svgContent - Raw SVG string
  * @returns Cleaned SVG string
  */
+
+// Helper: Parse SVG path data into commands
+interface PathCommand {
+  type: string;
+  args: number[];
+}
+
+function parsePathData(d: string): PathCommand[] {
+  const commands: PathCommand[] = [];
+  const commandRegex = /([a-zA-Z])([^a-zA-Z]*)/g;
+  let match: RegExpExecArray | null;
+  while ((match = commandRegex.exec(d)) !== null) {
+      if (match[1]) {
+          const type = match[1];
+          const argsStr = match[2] || '';
+          const args = argsStr.trim().split(/[\s,]+/).filter(s => s !== '').map(n => parseFloat(n));
+          commands.push({ type, args });
+      }
+  }
+  return commands;
+}
+
+// Helper: Stringify commands back to d string
+function stringifyCommands(commands: PathCommand[]): string {
+  return commands.map(c => `${c.type} ${c.args.join(' ')}`).join(' ');
+}
+
+// Helper: Reverse a sequence of commands
+function reverseCommands(commands: PathCommand[]): PathCommand[] {
+  if (commands.length === 0) return [];
+  
+  interface Segment {
+      originalCmd: PathCommand;
+      start: {x: number, y: number};
+      end: {x: number, y: number};
+  }
+  
+  let pen = { x: 0, y: 0 };
+  const segments: Segment[] = [];
+  
+  // First pass: identify segments and points
+  for (const cmd of commands) {
+      const start = { ...pen };
+      let end = { ...pen };
+      
+      switch (cmd.type.toUpperCase()) {
+          case 'M':
+          case 'L':
+              if (cmd.args.length >= 2) {
+                  end = { x: cmd.args[0]!, y: cmd.args[1]! };
+              }
+              break;
+          case 'C':
+              if (cmd.args.length >= 6) {
+                  end = { x: cmd.args[4]!, y: cmd.args[5]! };
+              }
+              break;
+          case 'Z':
+              break;
+      }
+      
+      segments.push({ originalCmd: cmd, start, end });
+      pen = end;
+  }
+  
+  const reversed: PathCommand[] = [];
+  
+  // The new path starts where the old one ended.
+  if (segments.length > 0) {
+      const last = segments[segments.length - 1]!;
+      reversed.push({ type: 'M', args: [last.end.x, last.end.y] });
+  }
+  
+  // Iterate backwards
+  for (let i = segments.length - 1; i >= 0; i--) {
+      const seg = segments[i]!;
+      const type = seg.originalCmd.type.toUpperCase();
+      
+      if (type === 'M') {
+          continue;
+      } else if (type === 'L') {
+          reversed.push({ type: 'L', args: [seg.start.x, seg.start.y] });
+      } else if (type === 'C') {
+          reversed.push({ 
+              type: 'C', 
+              args: [
+                  seg.originalCmd.args[2]!, seg.originalCmd.args[3]!, // cp2 -> cp1
+                  seg.originalCmd.args[0]!, seg.originalCmd.args[1]!, // cp1 -> cp2
+                  seg.start.x, seg.start.y // start -> end
+              ]
+          });
+      }
+  }
+  
+  return reversed;
+}
+
 export function cleanMirroredSvg(svgContent: string): string {
   const { document } = parseHTML(svgContent);
   const svg = document.querySelector('svg');
@@ -325,6 +422,9 @@ export function cleanMirroredSvg(svgContent: string): string {
   const cleanNode = (node: Element) => {
     const children = Array.from(node.children);
     let hasValidChildren = false;
+    
+    // We collect valid fabric paths in this group to see if we can merge them
+    const validPaths: Element[] = [];
 
     for (const child of children) {
       const tagName = child.tagName.toLowerCase();
@@ -335,7 +435,6 @@ export function cleanMirroredSvg(svgContent: string): string {
            child.remove();
          } else {
            hasValidChildren = true;
-           // Remove IDs from groups to be clean
            child.removeAttribute('id');
          }
       } else if (tagName === 'path') {
@@ -343,16 +442,64 @@ export function cleanMirroredSvg(svgContent: string): string {
          // Check for fabric AND sa
          if (classList.includes('fabric') && classList.includes('sa')) {
             hasValidChildren = true;
+            validPaths.push(child);
+
+            // Remove center line artifacts (seam allowance on fold lines)
+            let d = child.getAttribute('d') || '';
+            const removePattern = /L\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*M\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*L\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*$/i;
+            if (removePattern.test(d)) {
+                d = d.replace(removePattern, '');
+                child.setAttribute('d', d);
+            }
          } else {
             child.remove();
          }
       } else if (tagName === 'style') {
          hasValidChildren = true;
       } else {
-         // Remove text, use, etc.
          child.remove();
       }
     }
+
+    // Post-processing: Check if we can merge mirrored paths
+    if (validPaths.length === 2) {
+        // Simple heuristic: If we have exactly 2 fabric/sa paths in a group, 
+        // they are likely the mirrored halves.
+        // We assume Path 1 is the main and Path 2 is the mirrored one (or vice versa).
+        // To join them: Start Path 1 -> End Path 1 -> Reverse Path 2 -> Start Path 2 (which connects to Start Path 1).
+        
+        const p1 = validPaths[0]!;
+        const p2 = validPaths[1]!;
+        const d1 = p1.getAttribute('d') || '';
+        const d2 = p2.getAttribute('d') || '';
+        
+        const cmds1 = parsePathData(d1);
+        const cmds2 = parsePathData(d2);
+        
+        if (cmds1.length > 0 && cmds2.length > 0) {
+            // Reverse the second path
+            const revCmds2 = reverseCommands(cmds2);
+            
+            // Remove the 'M' from the reversed path so it connects directly
+            if (revCmds2.length > 0 && revCmds2[0]!.type.toUpperCase() === 'M') {
+                 revCmds2.shift();
+            }
+            
+            // Join
+            const joinedCmds = [...cmds1, ...revCmds2];
+            
+            // Optionally close the path
+            joinedCmds.push({ type: 'z', args: [] });
+            
+            const newD = stringifyCommands(joinedCmds);
+            
+            // Update p1 with joined path
+            p1.setAttribute('d', newD);
+            // Remove p2
+            p2.remove();
+        }
+    }
+
     return hasValidChildren;
   }
 
