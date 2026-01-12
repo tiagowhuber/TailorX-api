@@ -6,6 +6,7 @@ import {
   generateFreeSewingPattern,
   generatePatternName,
   extractRequiredMeasurementKeys,
+  cleanMirroredSvg,
 } from '../utils/freesewing';
 import { TailorFitService } from '../services/TailorFitService';
 
@@ -669,6 +670,108 @@ export const getPatternsByStatus = async (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Internal server error',
+    });
+  }
+};
+
+export const generateMirroredPattern = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Fetch original pattern
+    const originalPattern = await Pattern.findByPk(id, {
+        include: [
+            {
+                model: Design,
+                as: 'design',
+                attributes: ['id', 'name', 'freesewing_pattern', 'default_settings']
+            }
+        ]
+    });
+
+    if (!originalPattern) {
+      return res.status(404).json({
+        success: false,
+        message: 'Original pattern not found',
+      });
+    }
+
+    // Authorization check
+    if (req.user && req.user.id !== originalPattern.user_id) {
+         return res.status(403).json({
+            success: false,
+            message: 'Access denied',
+          });
+    }
+
+    // Get the base pattern type from the design
+    const design = (originalPattern as any).design;
+    
+    if (!design || !design.freesewing_pattern) {
+        return res.status(400).json({
+            success: false,
+            message: 'Associated design does not support pattern generation',
+        });
+    }
+
+    const basePatternType = design.freesewing_pattern;
+    const mirroredPatternType = `${basePatternType} mirrored`;
+
+    console.log(`Generating mirrored pattern for Pattern ID ${id}. Type: ${mirroredPatternType}`);
+
+    let { svg, sizeKb } = await generateFreeSewingPattern({
+      patternType: mirroredPatternType,
+      measurements: originalPattern.measurements_used as any,
+      settings: originalPattern.settings_used as any,
+    });
+
+    // Clean mirrored SVG
+    svg = cleanMirroredSvg(svg);
+    // Recalculate size
+    sizeKb = Buffer.byteLength(svg, 'utf8') / 1024;
+
+    // Create new pattern record
+    const newPatternName = `Mirrored - ${originalPattern.name || design.name}`;
+
+    const newPattern = await Pattern.create({
+      user_id: originalPattern.user_id,
+      design_id: originalPattern.design_id,
+      name: newPatternName,
+      measurements_used: originalPattern.measurements_used,
+      settings_used: originalPattern.settings_used,
+      svg_data: svg,
+      svg_size_kb: sizeKb,
+      status: 'draft',
+    });
+
+    // Fetch created pattern for response
+    const createdPattern = await Pattern.findByPk(newPattern.id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email', 'first_name', 'last_name'],
+        },
+        {
+          model: Design,
+          as: 'design',
+          attributes: ['id', 'name', 'description', 'freesewing_pattern'],
+        },
+      ],
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Mirrored pattern generated successfully',
+      data: createdPattern,
+    });
+
+  } catch (error: any) {
+    console.error('Generate mirrored pattern error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error while generating mirrored pattern',
+      error: error.message
     });
   }
 };

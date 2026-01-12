@@ -9,6 +9,7 @@
 import type UserMeasurement from '../models/UserMeasurement';
 import type DesignMeasurement from '../models/DesignMeasurement';
 import { createMirroredPattern } from './MirroredPattern';
+import { parseHTML } from 'linkedom';
 
 interface FreeSewingMeasurements {
   [key: string]: number
@@ -283,4 +284,79 @@ export function extractRequiredMeasurementKeys(
   return designMeasurements
     .filter(dm => dm.measurementType?.freesewing_key)
     .map(dm => dm.measurementType!.freesewing_key!)
+}
+
+/**
+ * Clean the SVG to contain only fabric sa paths and minimal structure
+ * @param svgContent - Raw SVG string
+ * @returns Cleaned SVG string
+ */
+export function cleanMirroredSvg(svgContent: string): string {
+  const { document } = parseHTML(svgContent);
+  const svg = document.querySelector('svg');
+  if (!svg) return svgContent;
+
+  // Set standard attributes
+  svg.setAttribute('width', svg.getAttribute('width') || '100%');
+  svg.setAttribute('height', svg.getAttribute('height') || '100%');
+  
+  // Clean attributes
+  const keepAttrs = ['xmlns', 'xmlns:xlink', 'class', 'width', 'height', 'viewBox'];
+  Array.from(svg.attributes).forEach((attr: any) => {
+    if (!keepAttrs.includes(attr.name)) {
+        svg.removeAttribute(attr.name);
+    }
+  });
+
+  // 1. Update Styles
+  const style = svg.querySelector('style');
+  if (style) {
+    style.textContent = `
+    svg.freesewing path { fill: none; stroke: #212121; stroke-width: 0.6; stroke-linecap: round; stroke-linejoin: round; }
+    svg.freesewing .sa { stroke-dasharray: 0.4, 0.8; }
+    `;
+  }
+
+  // 2. Remove Defs
+  const defs = svg.querySelector('defs');
+  if (defs) defs.remove();
+
+  // 3. Clean Nodes
+  const cleanNode = (node: Element) => {
+    const children = Array.from(node.children);
+    let hasValidChildren = false;
+
+    for (const child of children) {
+      const tagName = child.tagName.toLowerCase();
+      
+      if (tagName === 'g') {
+         const childResult = cleanNode(child);
+         if (!childResult) {
+           child.remove();
+         } else {
+           hasValidChildren = true;
+           // Remove IDs from groups to be clean
+           child.removeAttribute('id');
+         }
+      } else if (tagName === 'path') {
+         const classList = child.getAttribute('class') || '';
+         // Check for fabric AND sa
+         if (classList.includes('fabric') && classList.includes('sa')) {
+            hasValidChildren = true;
+         } else {
+            child.remove();
+         }
+      } else if (tagName === 'style') {
+         hasValidChildren = true;
+      } else {
+         // Remove text, use, etc.
+         child.remove();
+      }
+    }
+    return hasValidChildren;
+  }
+
+  cleanNode(svg);
+
+  return svg.outerHTML;
 }
