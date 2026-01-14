@@ -5,6 +5,7 @@ import OrderStatusHistory from '../models/OrderStatusHistory';
 import User from '../models/User';
 import Pattern from '../models/Pattern';
 import Design from '../models/Design';
+import OrderedPattern from '../models/OrderedPattern';
 import { generateFreeSewingPattern, cleanMirroredSvg } from '../utils/freesewing';
 
 const TBK_URL = process.env.TRANSBANK_API_URL || 'https://webpay3gint.transbank.cl/rswebpaytransaction/api/webpay/v1.2/transactions';
@@ -330,7 +331,7 @@ export const getPaymentState = async (req: Request, res: Response) => {
                   
                await originalPattern.update({ name: newName });
                
-               // 2. Generate Mirrored Copy for Admin (User ID 1)
+               // 2. Create OrderedPattern entry with normal and mirrored versions
                const design = originalPattern.design;
                if (design.freesewing_pattern) {
                   const mirroredPatternType = `${design.freesewing_pattern} mirrored`;
@@ -338,28 +339,23 @@ export const getPaymentState = async (req: Request, res: Response) => {
                   try {
                     console.log(`Generating mirrored admin copy for Pattern ${originalPattern.id}`);
                     
-                    let { svg, sizeKb } = await generateFreeSewingPattern({
+                    let { svg: mirroredSvg } = await generateFreeSewingPattern({
                       patternType: mirroredPatternType,
                       measurements: originalPattern.measurements_used as any,
                       settings: originalPattern.settings_used as any,
                     });
 
                     // Clean mirrored SVG
-                    svg = cleanMirroredSvg(svg);
-                    sizeKb = Buffer.byteLength(svg, 'utf8') / 1024;
+                    mirroredSvg = cleanMirroredSvg(mirroredSvg);
 
-                    const adminPatternName = `ORD-${order.order_number} - MIRRORED - ${originalPattern.name}`;
-
-                    await Pattern.create({
-                      user_id: 7, // Admin User ID (Hardcoded)
-                      design_id: originalPattern.design_id,
-                      name: adminPatternName,
-                      measurements_used: originalPattern.measurements_used,
-                      settings_used: originalPattern.settings_used,
-                      svg_data: svg,
-                      svg_size_kb: sizeKb,
-                      status: 'finalized', 
+                    // Create OrderedPattern
+                    await OrderedPattern.create({
+                        order_id: order.id,
+                        pattern_id: originalPattern.id,
+                        svg_normal: originalPattern.svg_data,
+                        svg_mirrored: mirroredSvg
                     });
+
                   } catch (genError) {
                     console.error(`Failed to generate admin copy for pattern ${originalPattern.id}:`, genError);
                   }

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import {
   getAllPatterns,
+  getOrderedPatterns,
   getPatternsByUserId,
   getPatternById,
   createPattern,
@@ -22,6 +23,9 @@ const router = Router();
 
 // GET /patterns - Get all patterns (with optional user and status filters) (protected)
 router.get('/', authenticateToken, getAllPatterns);
+
+// GET /patterns/ordered - Get all ordered patterns (admin only)
+router.get('/ordered', authenticateToken, getOrderedPatterns);
 
 // GET /patterns/user/:userId - Get all patterns for a specific user (protected)
 router.get('/user/:userId', authenticateToken, getPatternsByUserId);

@@ -9,6 +9,7 @@ import Order from './Order';
 import OrderItem from './OrderItem';
 import OrderStatusHistory from './OrderStatusHistory';
 import UserAddress from './UserAddress';
+import OrderedPattern from './OrderedPattern';
 
 // Define associations
 // User associations
@@ -37,11 +38,13 @@ DesignMeasurement.belongsTo(MeasurementType, { foreignKey: 'measurement_type_id'
 Pattern.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Pattern.belongsTo(Design, { foreignKey: 'design_id', as: 'design' });
 Pattern.hasMany(OrderItem, { foreignKey: 'pattern_id', as: 'orderItems' });
+Pattern.hasOne(OrderedPattern, { foreignKey: 'pattern_id', as: 'orderedPattern' });
 
 // Order associations
 Order.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items' });
 Order.hasMany(OrderStatusHistory, { foreignKey: 'order_id', as: 'statusHistory' });
+Order.hasMany(OrderedPattern, { foreignKey: 'order_id', as: 'orderedPatterns' });
 
 // OrderItem associations
 OrderItem.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
@@ -52,6 +55,10 @@ OrderStatusHistory.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 
 // UserAddress associations
 UserAddress.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+// OrderedPattern associations
+OrderedPattern.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
+OrderedPattern.belongsTo(Pattern, { foreignKey: 'pattern_id', as: 'pattern' });
 
 // Export models and sequelize instance
 export {
@@ -66,6 +73,7 @@ export {
   OrderItem,
   OrderStatusHistory,
   UserAddress,
+  OrderedPattern,
 };
 
 export default {
@@ -80,4 +88,5 @@ export default {
   OrderItem,
   OrderStatusHistory,
   UserAddress,
+  OrderedPattern,
 };

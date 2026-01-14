@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { Pattern, User, Design, UserMeasurement, MeasurementType, DesignMeasurement } from '../models';
+import { Pattern, User, Design, UserMeasurement, MeasurementType, DesignMeasurement, OrderedPattern, Order } from '../models';
 import {
   transformMeasurementsForFreeSewing,
   validateRequiredMeasurements,
@@ -696,12 +696,12 @@ export const generateMirroredPattern = async (req: Request, res: Response) => {
       });
     }
 
-    // Authorization check
-    if (req.user && req.user.id !== originalPattern.user_id) {
-         return res.status(403).json({
+    // Authorization check - allow owner or admin
+    if (!req.user || (req.user.id !== originalPattern.user_id && req.user.role !== 'admin')) {
+        return res.status(403).json({
             success: false,
             message: 'Access denied',
-          });
+        });
     }
 
     // Get the base pattern type from the design
@@ -809,4 +809,49 @@ export const exportPatternToPLT = async (req: Request, res: Response) => {
       message: 'Internal server error during PLT export',
     });
   }
+};
+
+export const getOrderedPatterns = async (req: Request, res: Response) => {
+    try {
+        if (!req.user || req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied'
+            });
+        }
+
+        const orderedPatterns = await OrderedPattern.findAll({
+            include: [
+                {
+                    model: Order,
+                    as: 'order',
+                    attributes: ['id', 'order_number', 'status']
+                },
+                {
+                    model: Pattern,
+                    as: 'pattern',
+                    include: [
+                        {
+                            model: Design,
+                            as: 'design',
+                            attributes: ['id', 'name', 'image_url']
+                        }
+                    ]
+                }
+            ],
+            order: [['created_at', 'DESC']]
+        });
+
+        res.json({
+            success: true,
+            data: orderedPatterns,
+            count: orderedPatterns.length
+        });
+    } catch (error) {
+        console.error('Get ordered patterns error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
 };

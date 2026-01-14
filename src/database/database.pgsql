@@ -142,6 +142,24 @@ CREATE TABLE order_items (
 CREATE INDEX idx_order_items_order ON order_items(order_id);
 CREATE INDEX idx_order_items_pattern ON order_items(pattern_id);
 
+-- Ordered Patterns Table
+CREATE TABLE ordered_patterns (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    pattern_id INTEGER NOT NULL REFERENCES patterns(id) ON DELETE CASCADE,
+    svg_normal TEXT,
+    svg_mirrored TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_ordered_patterns_order ON ordered_patterns(order_id);
+CREATE INDEX idx_ordered_patterns_pattern ON ordered_patterns(pattern_id);
+
+-- Trigger to update updated_at timestamp for ordered_patterns
+CREATE TRIGGER update_ordered_patterns_updated_at BEFORE UPDATE ON ordered_patterns
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Order Status History (for tracking)
 CREATE TABLE order_status_history (
     id SERIAL PRIMARY KEY,
