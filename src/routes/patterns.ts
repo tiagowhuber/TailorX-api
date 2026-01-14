@@ -17,6 +17,7 @@ import {
   getPatternsByStatus,
   exportPatternToPLT,
   generateMirroredPattern,
+  exportOrderedPatternToPLT,
 } from '../controllers/patternController';
 
 const router = Router();
@@ -65,6 +66,9 @@ router.put('/:id/unarchive', authenticateToken, unarchivePattern);
 
 // POST /patterns/:id/export/plt - Export pattern to PLT (HPGL) format (protected)
 router.post('/:id/export/plt', authenticateToken, exportPatternToPLT);
+
+// POST /patterns/ordered/:id/export/plt - Export ordered pattern to PLT (HPGL) format (protected)
+router.post('/ordered/:id/export/plt', authenticateToken, exportOrderedPatternToPLT);
 
 // POST /patterns/:id/mirror - Generate mirrored version of a pattern record (protected)
 router.post('/:id/mirror', authenticateToken, generateMirroredPattern);

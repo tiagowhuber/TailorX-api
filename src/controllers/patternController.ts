@@ -855,3 +855,41 @@ export const getOrderedPatterns = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const exportOrderedPatternToPLT = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const orderedPattern = await OrderedPattern.findByPk(id);
+    if (!orderedPattern) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ordered pattern not found',
+      });
+    }
+
+    // Get mirrored SVG as requested
+    const svgData = orderedPattern.svg_mirrored;
+
+    if (!svgData) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ordered pattern does not have mirrored SVG data',
+      });
+    }
+
+    const service = new TailorFitService();
+    const result = await service.process(svgData);
+
+    res.setHeader('Content-Type', result.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.send(result.content);
+
+  } catch (error) {
+    console.error('Export Ordered Pattern PLT error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during PLT export',
+    });
+  }
+};
