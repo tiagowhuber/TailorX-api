@@ -34,6 +34,25 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
   }
 };
 
+export const requireAdmin = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    if (user.role !== 'admin') {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Require admin error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers['authorization'];

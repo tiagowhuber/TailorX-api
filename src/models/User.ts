@@ -9,11 +9,12 @@ interface UserAttributes {
   first_name?: string | undefined;
   last_name?: string | undefined;
   profile_picture_url?: string | undefined;
+  role: string;
   created_at?: Date;
   updated_at?: Date;
 }
 
-interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'created_at' | 'updated_at'> {}
+interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 'created_at' | 'updated_at' | 'role'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
   public id!: number;
@@ -22,6 +23,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public first_name?: string | undefined;
   public last_name?: string | undefined;
   public profile_picture_url?: string | undefined;
+  public role!: string;
   public created_at?: Date;
   public updated_at?: Date;
 
@@ -67,6 +69,11 @@ User.init(
     profile_picture_url: {
       type: DataTypes.STRING(500),
       allowNull: true,
+    },
+    role: {
+      type: DataTypes.STRING(50),
+      allowNull: false,
+      defaultValue: 'user',
     },
     created_at: {
       type: DataTypes.DATE,

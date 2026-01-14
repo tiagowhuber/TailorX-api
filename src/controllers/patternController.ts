@@ -68,7 +68,7 @@ export const getPatternsByUserId = async (req: Request, res: Response) => {
         {
           model: Design,
           as: 'design',
-          attributes: ['id', 'name', 'description', 'freesewing_pattern'],
+          attributes: ['id', 'name', 'description', 'freesewing_pattern', 'image_url'],
         },
       ],
       order: [['created_at', 'DESC']],
@@ -102,7 +102,7 @@ export const getPatternById = async (req: Request, res: Response) => {
         {
           model: Design,
           as: 'design',
-          attributes: ['id', 'name', 'description', 'freesewing_pattern'],
+          attributes: ['id', 'name', 'description', 'freesewing_pattern', 'image_url'],
         },
       ],
     });

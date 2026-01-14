@@ -3,10 +3,19 @@ import { Order, OrderItem, OrderStatusHistory, User, Pattern } from '../models';
 
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
+    const user = req.user;
     const { userId, status } = req.query;
     
     const whereClause: any = {};
-    if (userId) whereClause.user_id = userId;
+    
+    // If user is not admin, they can only see their own orders
+    if (user.role !== 'admin') {
+        whereClause.user_id = user.id;
+    } else {
+        // Admins can filter by userId if provided
+        if (userId) whereClause.user_id = userId;
+    }
+
     if (status) whereClause.status = status;
 
     const orders = await Order.findAll({
