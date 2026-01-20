@@ -19,11 +19,21 @@ interface PatternPiece {
   rotation: number; // 0, 90, 180, 270
 }
 
+interface ReusableArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  area: number; // mm²
+  areaCm2: number; // cm²
+}
+
 interface Bed {
   pieces: PatternPiece[];
   efficiency: number;
   width: number;
   height: number;
+  reusableArea?: ReusableArea;
 }
 
 /**
@@ -76,6 +86,9 @@ export class TailorFitService {
     console.log('\n--- BED SUMMARY ---');
     beds.forEach((bed, index) => {
       console.log(`Bed ${index + 1}: ${bed.pieces.length} pieces, ${bed.efficiency.toFixed(2)}% efficiency`);
+      if (bed.reusableArea) {
+        console.log(`  └─ Reusable Area: ${bed.reusableArea.width.toFixed(1)}×${bed.reusableArea.height.toFixed(1)}mm (${bed.reusableArea.areaCm2.toFixed(2)} cm²)`);
+      }
     });
     console.log('==========================================\n');
 
@@ -450,19 +463,64 @@ export class TailorFitService {
       const totalArea = bedWidth * bedHeight;
       const wastedArea = totalArea - usedArea;
       const efficiency = (usedArea / totalArea) * 100;
+
+      // Calculate Reusable Area (Biggest Rectangular Area)
+      // We calculate the bounding box of all fitted pieces
+      let maxUsedX = 0;
+      let maxUsedY = 0;
+      
+      currentBedPieces.forEach(p => {
+        // Pieces already have x, y set relative to bed origin (0,0)
+        // Add width/height to get the far edge
+        const farX = (p.x || 0) + p.width;
+        const farY = (p.y || 0) + p.height;
+        if (farX > maxUsedX) maxUsedX = farX;
+        if (farY > maxUsedY) maxUsedY = farY;
+      });
+
+      // Add appropriate margins to define the "safe" cut line
+      // We add MARGIN to ensure we don't cut into the pieces' clearance zone
+      const safeX = Math.min(maxUsedX + TailorFitService.MARGIN, bedWidth);
+      const safeY = Math.min(maxUsedY + TailorFitService.MARGIN, bedHeight);
+
+      // Strategy: Check two main potential rectangles
+      // 1. Right side (Full height, starting after used X)
+      const rightArea: ReusableArea = {
+        x: safeX,
+        y: 0,
+        width: Math.max(0, bedWidth - safeX),
+        height: bedHeight,
+        area: Math.max(0, bedWidth - safeX) * bedHeight,
+        areaCm2: (Math.max(0, bedWidth - safeX) * bedHeight) / 100
+      };
+
+      // 2. Bottom side (Full width, starting after used Y)
+      const bottomArea: ReusableArea = {
+        x: 0,
+        y: safeY,
+        width: bedWidth,
+        height: Math.max(0, bedHeight - safeY),
+        area: bedWidth * Math.max(0, bedHeight - safeY),
+        areaCm2: (bedWidth * Math.max(0, bedHeight - safeY)) / 100
+      };
+
+      // Select the larger one
+      const bestReusable = rightArea.area >= bottomArea.area ? rightArea : bottomArea;
       
       console.log(`\n[NEST] Bed ${beds.length + 1} Complete:`);
       console.log(`  └─ Pieces fitted: ${currentBedPieces.length}`);
       console.log(`  └─ Area used: ${(usedArea / 1000000).toFixed(4)} m² (${(usedArea / 100).toFixed(2)} cm²)`);
       console.log(`  └─ Area wasted: ${(wastedArea / 1000000).toFixed(4)} m² (${(wastedArea / 100).toFixed(2)} cm²)`);
       console.log(`  └─ Efficiency: ${efficiency.toFixed(2)}%`);
+      console.log(`  └─ Reusable Area: ${bestReusable.width.toFixed(1)}×${bestReusable.height.toFixed(1)}mm (${bestReusable.areaCm2.toFixed(2)} cm²)`);
       console.log(`  └─ Remaining pieces: ${nextRemaining.length}`);
 
       beds.push({
         pieces: currentBedPieces,
         efficiency,
         width: bedWidth,
-        height: bedHeight
+        height: bedHeight,
+        reusableArea: bestReusable
       });
 
       remainingPieces = nextRemaining;
