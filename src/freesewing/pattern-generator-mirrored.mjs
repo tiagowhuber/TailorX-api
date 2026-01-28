@@ -66,6 +66,34 @@ class MirroredBrian extends Brian {
                     });
                 }
             }
+
+            // Handles Sleeve Duplication
+            if (parts['brian.sleeve']) {
+                const part = parts['brian.sleeve'];
+                // Use standard Brian points for the right side of the sleeve
+                // We want to mirror across a line to the right of the piece to create a clone
+                let p1 = part.points.bicepsRight;
+                let p2 = part.points.wristRight;
+
+                // Fallback for p2 if wristRight is missing/renamed in some blocks
+                if (p1 && !p2) {
+                   p2 = p1.shift(270, 200);
+                }
+
+                if (p1 && p2) {
+                    console.log('Duplicating sleeve (mirrored)...');
+                    
+                    // Create a mirror line 20mm to the right of the piece
+                    const mirrorLineStart = p1.shift(0, 20);
+                    const mirrorLineEnd = p2.shift(0, 20);
+
+                    part.macro('mirror', {
+                        mirror: [mirrorLineStart, mirrorLineEnd],
+                        name: 'sleeve_copy',
+                        prefix: 'mirrored_'
+                    });
+                }
+            }
         }
         
         return this;

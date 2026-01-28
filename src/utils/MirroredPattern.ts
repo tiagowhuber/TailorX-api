@@ -118,6 +118,61 @@ export const createMirroredPattern = (BasePatternClass: any, pluginMirror: any) 
                  console.log(`Base part ${baseName} NOT found in available parts.`);
             }
         });
+
+        // Duplication Logic for Sleeve
+        // We want to create a mirrored COPY of the sleeve
+        const sleeveNames = availablePartNames.filter(name => 
+            name === 'sleeve' || name.endsWith('.sleeve')
+        );
+
+        sleeveNames.forEach(sleeveName => {
+            const part = parts[sleeveName];
+            
+            // We need a mirror axis that is OUTSIDE the piece to create a duplicate
+            // Using bicepsRight and wristRight (standard right edge of sleeve)
+            let p1, p2;
+
+            if (part.points.bicepsRight && part.points.wristRight) {
+                p1 = part.points.bicepsRight;
+                p2 = part.points.wristRight;
+            } else if (part.points.bicepsRight) {
+                p1 = part.points.bicepsRight;
+                 // Drop vertical if wrist missing (270 is down)
+                p2 = p1.shift(270, 200); 
+            }
+
+            if (p1 && p2) {
+                console.log(`Applying mirror duplication to part: ${sleeveName}`);
+                
+                // Create axis shifted 20mm to the right to prevent overlap
+                const axis1 = p1.shift(0, 20);
+                const axis2 = p2.shift(0, 20);
+
+                const pathsToMirror = Object.keys(part.paths);
+                const pointsToMirror = Object.keys(part.points);
+
+                try {
+                     const macroArgs = {
+                        mirror: [axis1, axis2],
+                        paths: pathsToMirror,
+                        points: pointsToMirror,
+                        name: sleeveName,
+                        prefix: 'mirrored_' 
+                    };
+
+                     if (pluginMirror?.macros?.mirror) {
+                        // @ts-ignore
+                        pluginMirror.macros.mirror.call(part, macroArgs);
+                     } else if (pluginMirror.plugin && pluginMirror.plugin.macros && pluginMirror.plugin.macros.mirror) {
+                         // @ts-ignore
+                         pluginMirror.plugin.macros.mirror.call(part, macroArgs);
+                     }
+                } catch (err: any) {
+                    console.error(`Failed to duplicate sleeve ${sleeveName}:`, err);
+                }
+            }
+        });
+
       }
       
       console.log('--- MirroredPattern Debug End ---');

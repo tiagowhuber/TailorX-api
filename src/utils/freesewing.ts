@@ -462,7 +462,11 @@ export function cleanMirroredSvg(svgContent: string): string {
     }
 
     // Post-processing: Check if we can merge mirrored paths
-    if (validPaths.length === 2) {
+    // Skip merging for sleeves as we want duplicates, not joined paths
+    const nodeId = node.getAttribute('id') || '';
+    const isSleeve = nodeId.toLowerCase().includes('sleeve');
+
+    if (validPaths.length === 2 && !isSleeve) {
         // Simple heuristic: If we have exactly 2 fabric/sa paths in a group, 
         // they are likely the mirrored halves.
         // We assume Path 1 is the main and Path 2 is the mirrored one (or vice versa).
