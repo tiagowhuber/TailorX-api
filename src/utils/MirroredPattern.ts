@@ -173,6 +173,36 @@ export const createMirroredPattern = (BasePatternClass: any, pluginMirror: any) 
             }
         });
 
+        // Auto-Close Logic for Gusset and Waistband
+        const partsToAutoClose = availablePartNames.filter(name => 
+          name.includes('gusset') || name.includes('waistband')
+        );
+
+        partsToAutoClose.forEach(partName => {
+          const part = parts[partName];
+          if (!part || !part.paths) return;
+
+          console.log(`Checking paths for auto-close in part: ${partName}`);
+          const paths = Object.keys(part.paths);
+             
+          paths.forEach(pathName => {
+            // Skip common non-outline paths
+            if (['grainline', 'title', 'logo', 'scalebox', 'cutonfold', 'dimension'].includes(pathName) || pathName.startsWith('__')) {
+              return;
+            }
+
+            const path = part.paths[pathName];
+            try {
+              if (typeof path.close === 'function') {
+                console.log(`Auto-closing path ${pathName} in ${partName}`);
+                path.close();
+              }
+            } catch (e) {
+              console.error(`Error closing path ${pathName} in ${partName}`, e);
+            }
+          });
+        });
+
       }
       
       console.log('--- MirroredPattern Debug End ---');
