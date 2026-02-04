@@ -122,6 +122,10 @@ async function getPatternClass(patternType: string) {
     patternCode = 'diana';
   } else if (patternTypeLower.includes('lumira')) {
     patternCode = 'lumira';
+  } else if (patternTypeLower.includes('hugo')) {
+    patternCode = 'hugo';
+  } else if (patternTypeLower.includes('penelope')) {
+    patternCode = 'penelope';
   }
   
   let PatternClass;
@@ -138,6 +142,18 @@ async function getPatternClass(patternType: string) {
         // @ts-ignore
         const { Brian } = await dynamicImport('@freesewing/brian');
         PatternClass = Brian;
+        break;
+      }
+      case 'hugo': {
+        // @ts-ignore
+        const { Hugo } = await dynamicImport('@freesewing/hugo');
+        PatternClass = Hugo;
+        break;
+      }
+      case 'penelope': {
+        // @ts-ignore
+        const { Penelope } = await dynamicImport('@freesewing/penelope');
+        PatternClass = Penelope;
         break;
       }
       case 'sven': {
@@ -165,7 +181,7 @@ async function getPatternClass(patternType: string) {
         break;
       }
       default:
-        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven, charlie, diana, lumira`);
+        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven, charlie, diana, lumira, hugo, penelope`);
     }
 
     if (isMirrored) {
@@ -207,13 +223,18 @@ export async function generateFreeSewingPattern(
     const { pluginAnnotations } = await dynamicImport('@freesewing/plugin-annotations');
 
     // FreeSewing v4 pattern configuration
-    const patternConfig = {
+    const patternConfig: any = {
       measurements,
       // Default settings for pattern generation
       sa: settings.sa ?? 10, // Seam allowance in mm
       complete: settings.complete ?? true,
       paperless: settings.paperless ?? true,
       ...settings
+    }
+
+    // Remove 'only' if it is null or undefined or explicitly null in settings
+    if (patternConfig.only === null || patternConfig.only === undefined) {
+      delete patternConfig.only;
     }
 
     console.log('Generating pattern with config:', patternConfig)

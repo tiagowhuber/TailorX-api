@@ -15,7 +15,8 @@ const startServer = async () => {
     
     // Sync models (be careful in production!)
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true });
+      // alter: true can cause issues with existing constraints, using safe sync instead
+      await sequelize.sync();
       console.log('Database models synchronized.');
     }
     
