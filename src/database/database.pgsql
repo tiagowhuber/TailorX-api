@@ -182,3 +182,46 @@ INSERT INTO design_measurements (design_id, measurement_type_id, is_required)
 SELECT 1, id, true
 FROM measurement_types
 WHERE freesewing_key IN ('biceps', 'chest', 'hips', 'hpsToBust', 'hpsToWaistBack', 'neck', 'shoulderSlope', 'shoulderToShoulder', 'waistToArmpit', 'waistToHips');
+
+-- 12. DISCOUNT CODES
+CREATE TABLE discount_codes (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    discount_type VARCHAR(20) CHECK (discount_type IN ('percentage', 'fixed_amount')),
+    value NUMERIC(10, 2) NOT NULL,
+    max_discount_amount NUMERIC(10, 2),
+    starts_at TIMESTAMP,
+    expires_at TIMESTAMP,
+    max_total_uses INTEGER,
+    current_total_uses INTEGER DEFAULT 0,
+    max_unique_users INTEGER,
+    max_uses_per_user INTEGER,
+    applies_to_design_id INTEGER REFERENCES designs(id),
+    target_design_ids INTEGER[], 
+    is_free_shipping BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_discount_codes_code ON discount_codes(code);
+
+-- 12.1 USER HAS DISCOUNT CODES (Wallet)
+CREATE TABLE user_has_discount_codes (
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    discount_code_id INTEGER REFERENCES discount_codes(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, discount_code_id)
+);
+
+-- 12.2 USER DISCOUNT CODE REDEMPTIONS
+CREATE TABLE user_discount_code_redemptions (
+    id SERIAL PRIMARY KEY,
+    discount_code_id INTEGER REFERENCES discount_codes(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    order_id INTEGER REFERENCES orders(id) ON DELETE SET NULL,
+    redeemed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_redemptions_user ON user_discount_code_redemptions(user_id);
+CREATE INDEX idx_redemptions_code ON user_discount_code_redemptions(discount_code_id);

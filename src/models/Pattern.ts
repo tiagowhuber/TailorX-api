@@ -29,6 +29,9 @@ class Pattern extends Model<PatternAttributes, PatternCreationAttributes> implem
   public status?: string;
   public created_at?: Date;
   public updated_at?: Date;
+
+  // Associations
+  public design?: any;
 }
 
 Pattern.init(

@@ -8,12 +8,22 @@ import Pattern from './Pattern';
 import Order from './Order';
 import OrderItem from './OrderItem';
 import OrderStatusHistory from './OrderStatusHistory';
+import DiscountCode from './DiscountCode';
+import UserHasDiscountCode from './UserHasDiscountCode';
+import UserDiscountCodeRedemption from './UserDiscountCodeRedemption';
 
 // Define associations
 // User associations
 User.hasMany(UserMeasurement, { foreignKey: 'user_id', as: 'measurements' });
 User.hasMany(Pattern, { foreignKey: 'user_id', as: 'patterns' });
 User.hasMany(Order, { foreignKey: 'user_id', as: 'orders' });
+User.belongsToMany(DiscountCode, {
+  through: UserHasDiscountCode,
+  foreignKey: 'user_id',
+  otherKey: 'discount_code_id',
+  as: 'discountCodes',
+});
+User.hasMany(UserDiscountCodeRedemption, { foreignKey: 'user_id', as: 'redemptions' });
 
 // MeasurementType associations
 MeasurementType.hasMany(UserMeasurement, { foreignKey: 'measurement_type_id', as: 'userMeasurements' });
@@ -38,8 +48,31 @@ Pattern.hasMany(OrderItem, { foreignKey: 'pattern_id', as: 'orderItems' });
 
 // Order associations
 Order.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+Order.belongsTo(DiscountCode, { foreignKey: 'discount_code_id', as: 'discountCode' });
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items' });
 Order.hasMany(OrderStatusHistory, { foreignKey: 'order_id', as: 'statusHistory' });
+
+// DiscountCode associations
+DiscountCode.belongsToMany(User, {
+  through: UserHasDiscountCode,
+  foreignKey: 'discount_code_id',
+  otherKey: 'user_id',
+  as: 'users',
+});
+DiscountCode.hasMany(UserDiscountCodeRedemption, {
+  foreignKey: 'discount_code_id',
+  as: 'redemptions',
+});
+DiscountCode.hasMany(Order, { foreignKey: 'discount_code_id', as: 'orders' });
+
+// UserHasDiscountCode associations
+UserHasDiscountCode.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+UserHasDiscountCode.belongsTo(DiscountCode, { foreignKey: 'discount_code_id', as: 'discountCode' });
+
+// UserDiscountCodeRedemption associations
+UserDiscountCodeRedemption.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+UserDiscountCodeRedemption.belongsTo(DiscountCode, { foreignKey: 'discount_code_id', as: 'discountCode' });
+UserDiscountCodeRedemption.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
 
 // OrderItem associations
 OrderItem.belongsTo(Order, { foreignKey: 'order_id', as: 'order' });
@@ -60,6 +93,9 @@ export {
   Order,
   OrderItem,
   OrderStatusHistory,
+  DiscountCode,
+  UserHasDiscountCode,
+  UserDiscountCodeRedemption,
 };
 
 export default {
@@ -73,4 +109,7 @@ export default {
   Order,
   OrderItem,
   OrderStatusHistory,
+  DiscountCode,
+  UserHasDiscountCode,
+  UserDiscountCodeRedemption,
 };

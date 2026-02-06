@@ -7,8 +7,11 @@ interface OrderAttributes {
   order_number: string;
   status?: string;
   total_amount: number;
-  shipping_address?: string;
-  billing_address?: string;
+  discount_code_id?: number | null;
+  discount_amount?: number;
+  final_amount?: number;
+  shipping_address?: string; // serialized JSON or text
+  billing_address?: string; // serialized JSON or text
   created_at?: Date;
   updated_at?: Date;
 }
@@ -21,6 +24,9 @@ class Order extends Model<OrderAttributes, OrderCreationAttributes> implements O
   public order_number!: string;
   public status?: string;
   public total_amount!: number;
+  public discount_code_id?: number | null;
+  public discount_amount?: number;
+  public final_amount?: number;
   public shipping_address?: string;
   public billing_address?: string;
   public created_at?: Date;
@@ -56,8 +62,16 @@ Order.init(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
-    shipping_address: {
-      type: DataTypes.TEXT,
+    discount_code_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    discount_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      defaultValue: 0,
+    },
+    final_amount: {
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
     },
     billing_address: {
