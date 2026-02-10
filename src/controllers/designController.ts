@@ -47,7 +47,7 @@ export const getDesignById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    const design = await Design.findByPk(id, {
+    const design = await Design.findByPk(String(id), {
       include: [
         {
           model: DesignMeasurement,
@@ -144,7 +144,7 @@ export const updateDesign = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, description, freesewing_pattern, base_price, is_active } = req.body;
 
-    const design = await Design.findByPk(id);
+    const design = await Design.findByPk(String(id));
     if (!design) {
       return res.status(404).json({
         success: false,
@@ -157,7 +157,7 @@ export const updateDesign = async (req: Request, res: Response) => {
       const existingDesign = await Design.findOne({ 
         where: { 
           name,
-          id: { [Op.ne]: id }
+          id: { [Op.ne]: String(id) }
         } 
       });
       if (existingDesign) {
@@ -173,7 +173,7 @@ export const updateDesign = async (req: Request, res: Response) => {
       const existingPatternDesign = await Design.findOne({ 
         where: { 
           freesewing_pattern,
-          id: { [Op.ne]: id }
+          id: { [Op.ne]: String(id) }
         } 
       });
       if (existingPatternDesign) {
@@ -212,7 +212,7 @@ export const deleteDesign = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const design = await Design.findByPk(id);
+    const design = await Design.findByPk(String(id));
     if (!design) {
       return res.status(404).json({
         success: false,
@@ -241,7 +241,7 @@ export const getDesignMeasurements = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     // Check if design exists
-    const design = await Design.findByPk(id);
+    const design = await Design.findByPk(String(id));
     if (!design) {
       return res.status(404).json({
         success: false,
@@ -289,7 +289,7 @@ export const addDesignMeasurement = async (req: Request, res: Response) => {
     }
 
     // Check if design exists
-    const design = await Design.findByPk(id);
+    const design = await Design.findByPk(String(id));
     if (!design) {
       return res.status(404).json({
         success: false,
@@ -318,7 +318,7 @@ export const addDesignMeasurement = async (req: Request, res: Response) => {
     }
 
     const designMeasurement = await DesignMeasurement.create({
-      design_id: parseInt(id!),
+      design_id: parseInt(String(id)),
       measurement_type_id,
       is_required: is_required !== undefined ? is_required : true,
     });

@@ -6,9 +6,8 @@ import userMeasurementRoutes from './userMeasurements';
 import designRoutes from './designs';
 import patternRoutes from './patterns';
 import orderRoutes from './orders';
-import paymentRoutes from './payments';
-import userAddressRoutes from './userAddresses';
-import tailorVisionRoutes from './tailorVision';
+import discountCodeRoutes from './discountCodeRoutes';
+import paymentRoutes from './paymentRoutes';
 
 const router = Router();
 
@@ -20,8 +19,7 @@ router.use('/user-measurements', userMeasurementRoutes);
 router.use('/designs', designRoutes);
 router.use('/patterns', patternRoutes);
 router.use('/orders', orderRoutes);
+router.use('/discount-codes', discountCodeRoutes);
 router.use('/payments', paymentRoutes);
-router.use('/user-addresses', userAddressRoutes);
-router.use('/tailor-vision', tailorVisionRoutes);
 
 export default router;

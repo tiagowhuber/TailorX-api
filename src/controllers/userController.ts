@@ -31,7 +31,10 @@ export const getUserById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    const user = await User.findByPk(id, {
+    // Parse ID or just pass directly if Sequelize handles casting
+    const userId = Number(id);
+
+    const user = await User.findByPk(userId, {
       attributes: { exclude: ['password_hash'] },
     });
 
@@ -106,8 +109,11 @@ export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { email, first_name, last_name, password } = req.body;
+    
+    // Parse ID
+    const userId = Number(id);
 
-    const user = await User.findByPk(id);
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -120,7 +126,7 @@ export const updateUser = async (req: Request, res: Response) => {
       const existingUser = await User.findOne({ 
         where: { 
           email,
-          id: { [Op.ne]: id }
+          id: { [Op.ne]: userId }
         } 
       });
       if (existingUser) {
@@ -163,7 +169,10 @@ export const deleteUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findByPk(id);
+    // Parse ID
+    const userId = Number(id);
+
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -189,9 +198,12 @@ export const deleteUser = async (req: Request, res: Response) => {
 export const uploadUserProfilePicture = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+
+    // Parse ID
+    const userId = Number(id);
     
     // Check if user exists
-    const user = await User.findByPk(id);
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -259,7 +271,10 @@ export const deleteUserProfilePicture = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const user = await User.findByPk(id);
+    // Parse ID
+    const userId = Number(id);
+
+    const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({
         success: false,

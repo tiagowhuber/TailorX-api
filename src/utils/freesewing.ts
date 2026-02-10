@@ -5,6 +5,15 @@
  * and dynamic pattern generation for different FreeSewing patterns.
  */
 
+// Use require for FreeSewing packages to avoid TypeScript module resolution issues
+const Aaron = require('@freesewing/aaron').Aaron;
+const Brian = require('@freesewing/brian').Brian;
+const Lumira = require('@freesewing/lumira').Lumira;
+const Diana = require('@freesewing/diana').Diana;
+const Penelope = require('@freesewing/penelope').Penelope;
+const Sven = require('@freesewing/sven').Sven;
+const theme = require('@freesewing/plugin-theme').pluginTheme;
+
 // Import model types
 import type UserMeasurement from '../models/UserMeasurement';
 import type DesignMeasurement from '../models/DesignMeasurement';
@@ -101,9 +110,8 @@ function dynamicImport(moduleName: string) {
  * @throws Error if pattern type is not supported
  */
 async function getPatternClass(patternType: string) {
-  // Normalize pattern type: extract just the pattern code
-  // "Brian body block" -> "brian", "Aaron A-shirt" -> "aaron"
-  const patternTypeLower = patternType.toLowerCase().trim();
+  // Normalize pattern type for processing
+  const patternTypeLower = patternType.toLowerCase();
   
   // Check for mirrored request
   const isMirrored = patternTypeLower.includes('mirrored');
@@ -128,7 +136,7 @@ async function getPatternClass(patternType: string) {
     patternCode = 'penelope';
   }
   
-  let PatternClass;
+  let PatternClass: any;
 
   try {
     switch (patternCode) {

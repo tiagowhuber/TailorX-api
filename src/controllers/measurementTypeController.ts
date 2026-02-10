@@ -26,7 +26,10 @@ export const getMeasurementTypeById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    const measurementType = await MeasurementType.findByPk(id);
+    // Parse ID
+    const typeId = Number(id);
+
+    const measurementType = await MeasurementType.findByPk(typeId);
 
     if (!measurementType) {
       return res.status(404).json({
@@ -107,7 +110,10 @@ export const updateMeasurementType = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, description, freesewing_key } = req.body;
 
-    const measurementType = await MeasurementType.findByPk(id);
+    // Parse ID
+    const typeId = Number(id);
+
+    const measurementType = await MeasurementType.findByPk(typeId);
     if (!measurementType) {
       return res.status(404).json({
         success: false,
@@ -120,7 +126,7 @@ export const updateMeasurementType = async (req: Request, res: Response) => {
       const existingType = await MeasurementType.findOne({ 
         where: { 
           name,
-          id: { [Op.ne]: id }
+          id: { [Op.ne]: typeId }
         } 
       });
       if (existingType) {
@@ -136,7 +142,7 @@ export const updateMeasurementType = async (req: Request, res: Response) => {
       const existingKeyType = await MeasurementType.findOne({ 
         where: { 
           freesewing_key,
-          id: { [Op.ne]: id }
+          id: { [Op.ne]: typeId }
         } 
       });
       if (existingKeyType) {
@@ -173,7 +179,10 @@ export const deleteMeasurementType = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const measurementType = await MeasurementType.findByPk(id);
+    // Parse ID
+    const typeId = Number(id);
+
+    const measurementType = await MeasurementType.findByPk(typeId);
     if (!measurementType) {
       return res.status(404).json({
         success: false,
