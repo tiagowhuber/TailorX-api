@@ -46,7 +46,7 @@ export const getUserMeasurementsByUserId = async (req: Request, res: Response) =
     const { userId } = req.params;
 
     // Check if user exists
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(String(userId));
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -84,7 +84,7 @@ export const getUserMeasurementById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    const userMeasurement = await UserMeasurement.findByPk(id, {
+    const userMeasurement = await UserMeasurement.findByPk(String(id), {
       include: [
         {
           model: User,
@@ -201,7 +201,7 @@ export const updateUserMeasurement = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { value } = req.body;
 
-    const userMeasurement = await UserMeasurement.findByPk(id);
+    const userMeasurement = await UserMeasurement.findByPk(String(id));
     if (!userMeasurement) {
       return res.status(404).json({
         success: false,
@@ -216,7 +216,7 @@ export const updateUserMeasurement = async (req: Request, res: Response) => {
     await userMeasurement.update(updateData);
 
     // Fetch the updated measurement with includes
-    const updatedMeasurement = await UserMeasurement.findByPk(id, {
+    const updatedMeasurement = await UserMeasurement.findByPk(String(id), {
       include: [
         {
           model: User,
@@ -249,7 +249,7 @@ export const deleteUserMeasurement = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const userMeasurement = await UserMeasurement.findByPk(id);
+    const userMeasurement = await UserMeasurement.findByPk(String(id));
     if (!userMeasurement) {
       return res.status(404).json({
         success: false,

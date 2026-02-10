@@ -8,6 +8,10 @@
 // Use require for FreeSewing packages to avoid TypeScript module resolution issues
 const Aaron = require('@freesewing/aaron').Aaron;
 const Brian = require('@freesewing/brian').Brian;
+const Lumira = require('@freesewing/lumira').Lumira;
+const Diana = require('@freesewing/diana').Diana;
+const Penelope = require('@freesewing/penelope').Penelope;
+const Sven = require('@freesewing/sven').Sven;
 const theme = require('@freesewing/plugin-theme').pluginTheme;
 
 // Import model types
@@ -99,6 +103,10 @@ function getPatternClass(patternType: string) {
   const patterns: { [key: string]: any } = {
     aaron: Aaron,
     brian: Brian,
+    lumira: Lumira,
+    diana: Diana,
+    penelope: Penelope,
+    sven: Sven,
     // Add more patterns as they are installed:
     // bella: require('@freesewing/bella').Bella,
     // etc.

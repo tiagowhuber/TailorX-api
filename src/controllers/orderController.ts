@@ -51,7 +51,7 @@ export const getOrdersByUserId = async (req: Request, res: Response) => {
     const { userId } = req.params;
 
     // Check if user exists
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(String(userId));
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -95,7 +95,7 @@ export const getOrderById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    const order = await Order.findByPk(id, {
+    const order = await Order.findByPk(String(id), {
       include: [
         {
           model: User,
@@ -226,7 +226,7 @@ export const updateOrder = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { total_amount, shipping_address } = req.body;
 
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(String(id));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -250,7 +250,7 @@ export const updateOrder = async (req: Request, res: Response) => {
     await order.update(updateData);
 
     // Fetch the updated order with includes
-    const updatedOrder = await Order.findByPk(id, {
+    const updatedOrder = await Order.findByPk(String(id), {
       include: [
         {
           model: User,
@@ -290,7 +290,7 @@ export const cancelOrder = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { reason } = req.body;
 
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(String(id));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -339,7 +339,7 @@ export const getOrderItems = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     // Check if order exists
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(String(id));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -387,7 +387,7 @@ export const addOrderItem = async (req: Request, res: Response) => {
     }
 
     // Check if order exists
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(String(id));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -404,7 +404,7 @@ export const addOrderItem = async (req: Request, res: Response) => {
     }
 
     // Check if pattern exists
-    const pattern = await Pattern.findByPk(pattern_id);
+    const pattern = await Pattern.findByPk(String(pattern_id));
     if (!pattern) {
       return res.status(404).json({
         success: false,
@@ -413,7 +413,7 @@ export const addOrderItem = async (req: Request, res: Response) => {
     }
 
     const orderItem = await OrderItem.create({
-      order_id: parseInt(id!),
+      order_id: parseInt(String(id)),
       pattern_id,
       quantity,
       price,
@@ -450,7 +450,7 @@ export const updateOrderItem = async (req: Request, res: Response) => {
     const { quantity, price } = req.body;
 
     // Check if order exists
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(String(id));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -485,7 +485,7 @@ export const updateOrderItem = async (req: Request, res: Response) => {
     await orderItem.update(updateData);
 
     // Fetch the updated item with includes
-    const updatedItem = await OrderItem.findByPk(itemId, {
+    const updatedItem = await OrderItem.findByPk(String(itemId), {
       include: [
         {
           model: Pattern,
@@ -514,7 +514,7 @@ export const removeOrderItem = async (req: Request, res: Response) => {
     const { id, itemId } = req.params;
 
     // Check if order exists
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(String(id));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -569,7 +569,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       });
     }
 
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(String(id));
     if (!order) {
       return res.status(404).json({
         success: false,
@@ -615,7 +615,7 @@ export const getOrderStatusHistory = async (req: Request, res: Response) => {
     const { id } = req.params;
 
     // Check if order exists
-    const order = await Order.findByPk(id);
+    const order = await Order.findByPk(String(id));
     if (!order) {
       return res.status(404).json({
         success: false,

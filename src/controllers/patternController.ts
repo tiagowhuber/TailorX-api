@@ -52,7 +52,7 @@ export const getPatternsByUserId = async (req: Request, res: Response) => {
     const { userId } = req.params;
 
     // Check if user exists
-    const user = await User.findByPk(userId);
+    const user = await User.findByPk(String(userId));
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -90,7 +90,7 @@ export const getPatternById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    const pattern = await Pattern.findByPk(id, {
+    const pattern = await Pattern.findByPk(String(id), {
       include: [
         {
           model: User,
@@ -208,7 +208,7 @@ export const updatePattern = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, status, measurements_used, settings_used, svg_data } = req.body;
 
-    const pattern = await Pattern.findByPk(id);
+    const pattern = await Pattern.findByPk(String(id));
     if (!pattern) {
       return res.status(404).json({
         success: false,
@@ -227,7 +227,7 @@ export const updatePattern = async (req: Request, res: Response) => {
     await pattern.update(updateData);
 
     // Fetch the updated pattern with includes
-    const updatedPattern = await Pattern.findByPk(id, {
+    const updatedPattern = await Pattern.findByPk(String(id), {
       include: [
         {
           model: User,
@@ -260,7 +260,7 @@ export const deletePattern = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const pattern = await Pattern.findByPk(id);
+    const pattern = await Pattern.findByPk(String(id));
     if (!pattern) {
       return res.status(404).json({
         success: false,
@@ -287,7 +287,7 @@ export const getPatternSvg = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    const pattern = await Pattern.findByPk(id, {
+    const pattern = await Pattern.findByPk(String(id), {
       attributes: ['id', 'name', 'svg_data'],
     });
 
@@ -491,7 +491,7 @@ export const finalizePattern = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const pattern = await Pattern.findByPk(id);
+    const pattern = await Pattern.findByPk(String(id));
     if (!pattern) {
       return res.status(404).json({
         success: false,
@@ -526,7 +526,7 @@ export const archivePattern = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const pattern = await Pattern.findByPk(id);
+    const pattern = await Pattern.findByPk(String(id));
     if (!pattern) {
       return res.status(404).json({
         success: false,
@@ -562,7 +562,7 @@ export const getPatternsByDesignId = async (req: Request, res: Response) => {
     const { designId } = req.params;
 
     // Check if design exists
-    const design = await Design.findByPk(designId);
+    const design = await Design.findByPk(String(designId));
     if (!design) {
       return res.status(404).json({
         success: false,

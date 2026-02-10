@@ -147,7 +147,7 @@ export const confirmPayment = async (req: Request, res: Response) => {
         if (!token) {
             return res.status(400).json({ success: false, message: 'Token required' });
         }
-        const orderIdStr = token.replace('mock_token_', '');
+        const orderIdStr = String(token).replace('mock_token_', '');
         const orderId = parseInt(orderIdStr);
 
         if (isNaN(orderId)) {
@@ -182,7 +182,7 @@ export const confirmPayment = async (req: Request, res: Response) => {
 export const getPaymentStatus = async (req: Request, res: Response) => {
     try {
         const { orderId } = req.params;
-        const order = await Order.findByPk(orderId);
+        const order = await Order.findByPk(String(orderId));
         
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
