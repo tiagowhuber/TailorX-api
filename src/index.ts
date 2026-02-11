@@ -21,7 +21,8 @@ const startServer = async () => {
     }
     
     app.listen(PORT, async () => {
-      console.log(`Server running at http://localhost:${PORT}`);
+      const host = process.env.HOST || 'localhost';
+      console.log(`Server running at http://${host}:${PORT}`);
 
       // Ping TailorVision
       const tailorVisionUrl = process.env.TAILORVISION_URL || 'http://localhost:8000';
