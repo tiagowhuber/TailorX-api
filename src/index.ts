@@ -20,8 +20,18 @@ const startServer = async () => {
       console.log('Database models synchronized.');
     }
     
-    app.listen(PORT, () => {
+    app.listen(PORT, async () => {
       console.log(`Server running at http://localhost:${PORT}`);
+
+      // Ping TailorVision
+      const tailorVisionUrl = process.env.TAILORVISION_URL || 'http://localhost:8000';
+      try {
+        // Attempt to fetch root URL or docs to check connectivity
+        await fetch(tailorVisionUrl);
+        console.log(`TailorVision: Connected at ${tailorVisionUrl}`);
+      } catch (error) {
+        console.error(`TailorVision: Connection failed (${tailorVisionUrl})`);
+      }
     });
   } catch (error) {
     console.error('Unable to start server:', error);
