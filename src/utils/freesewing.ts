@@ -188,8 +188,14 @@ async function getPatternClass(patternType: string) {
         PatternClass = Lumira;
         break;
       }
+      case 'sandy': {
+        // @ts-ignore
+        const { Sandy } = await dynamicImport('@freesewing/sandy');
+        PatternClass = Sandy;
+        break;
+      }
       default:
-        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven, charlie, diana, lumira, hugo, penelope`);
+        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven, charlie, diana, lumira, hugo, penelope, sandy`);
     }
 
     if (isMirrored) {
