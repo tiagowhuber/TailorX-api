@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { createPayment, confirmPayment, getPaymentStatus } from '../controllers/paymentController';
+import { createPayment, getPaymentState, getPaymentByOrderId } from '../controllers/paymentController';
 import { authenticateToken } from '../middleware/auth'; 
 
 const router = Router();
 
 // Routes
 router.post('/create', authenticateToken, createPayment);
-router.put('/confirm/:token', confirmPayment); // Public callback usually
-router.get('/order/:orderId', authenticateToken, getPaymentStatus);
+router.put('/confirm/:token', getPaymentState); // Public callback usually
+router.get('/order/:orderId', authenticateToken, getPaymentByOrderId);
 
 export default router;

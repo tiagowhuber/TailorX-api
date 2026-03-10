@@ -74,6 +74,10 @@ Order.init(
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
+    shipping_address: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
     discount_code_id: {
       type: DataTypes.INTEGER,
       allowNull: true,

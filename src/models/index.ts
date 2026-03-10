@@ -19,6 +19,7 @@ import UserAddress from './UserAddress';
 User.hasMany(UserMeasurement, { foreignKey: 'user_id', as: 'measurements' });
 User.hasMany(Pattern, { foreignKey: 'user_id', as: 'patterns' });
 User.hasMany(Order, { foreignKey: 'user_id', as: 'orders' });
+User.hasMany(UserAddress, { foreignKey: 'user_id', as: 'addresses' });
 User.belongsToMany(DiscountCode, {
   through: UserHasDiscountCode,
   foreignKey: 'user_id',

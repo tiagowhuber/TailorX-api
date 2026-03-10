@@ -1,6 +1,6 @@
 import express from 'express';
 import { authenticateToken } from '../middleware/auth';
-import { createPayment, getPaymentStatus, confirmPayment } from '../controllers/paymentController';
+import { createPayment, getPaymentState, getPaymentByOrderId } from '../controllers/paymentController';
 
 const router = express.Router();
 
@@ -14,12 +14,12 @@ router.post('/create', authenticateToken, createPayment);
  * PUT /api/payments/confirm/:token
  * Confirm payment status with Transbank
  */
-router.put('/confirm/:token', confirmPayment);
+router.put('/confirm/:token', getPaymentState);
 
 /**
- * GET /api/payments/status/:orderId
+ * GET /api/payments/order/:orderId
  * Get payment status by order ID
  */
-router.get('/status/:orderId', authenticateToken, getPaymentStatus);
+router.get('/order/:orderId', authenticateToken, getPaymentByOrderId);
 
 export default router;

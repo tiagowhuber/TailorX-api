@@ -110,6 +110,9 @@ CREATE TABLE orders (
     order_number VARCHAR(50) UNIQUE NOT NULL,
     status VARCHAR(50) DEFAULT 'pending', -- pending, processing, completed, shipped, delivered, cancelled
     total_amount NUMERIC(10, 2) NOT NULL,
+    discount_code_id INTEGER REFERENCES discount_codes(id),
+    discount_amount NUMERIC(10, 2) DEFAULT 0,
+    final_amount NUMERIC(10, 2),
     shipping_address TEXT,
     billing_address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
