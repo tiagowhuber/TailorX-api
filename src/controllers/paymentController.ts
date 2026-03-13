@@ -14,6 +14,7 @@ import { validateDiscountCodeLogic } from '../services/discountService';
 const TBK_URL = process.env.TRANSBANK_API_URL || 'https://webpay3gint.transbank.cl/rswebpaytransaction/api/webpay/v1.2/transactions';
 const TBK_ID = process.env.TRANSBANK_COMMERCE_CODE || '';
 const TBK_SECRET = process.env.TRANSBANK_API_KEY || '';
+const SKIP_PAY = process.env.SKIP_PAY === 'true';
 
 interface CartItem {
   patternId: number;
@@ -159,7 +160,103 @@ export const createPayment = async (req: Request, res: Response) => {
     });
 
     const buy_order = order.id.toString();
-    
+
+    // --- SKIP_PAY: bypass Transbank and auto-confirm for testing ---
+    if (SKIP_PAY) {
+      console.log('[SKIP_PAY] Skipping Transbank, auto-confirming order', order.id);
+
+      await order.update({
+        status: 'confirmed',
+        payment_status: 'completed',
+        transaction_id: buy_order,
+        payment_token: `skip-pay-${buy_order}`,
+        payment_url: ''
+      });
+
+      await OrderStatusHistory.create({
+        order_id: order.id,
+        status: 'confirmed',
+        notes: '[SKIP_PAY] Payment auto-confirmed for testing'
+      });
+
+      // Run the same post-payment logic as AUTHORIZED
+      try {
+        const orderItems = await OrderItem.findAll({
+          where: { order_id: order.id },
+          include: [
+            {
+              model: Pattern,
+              as: 'pattern',
+              include: [{ model: Design, as: 'design' }]
+            }
+          ]
+        });
+
+        for (const item of orderItems) {
+          const originalPattern = (item as any).pattern;
+          if (originalPattern && originalPattern.design) {
+            const newName = originalPattern.name && originalPattern.name.includes(order.order_number)
+              ? originalPattern.name
+              : `${originalPattern.name} - ${order.order_number}`;
+            await originalPattern.update({ name: newName });
+
+            const design = originalPattern.design;
+            if (design.freesewing_pattern) {
+              const mirroredPatternType = `${design.freesewing_pattern} mirrored`;
+              try {
+                let { svg: mirroredSvg } = await generateFreeSewingPattern({
+                  patternType: mirroredPatternType,
+                  measurements: originalPattern.measurements_used as any,
+                  settings: originalPattern.settings_used as any,
+                });
+                mirroredSvg = cleanMirroredSvg(mirroredSvg);
+                await OrderedPattern.create({
+                  order_id: order.id,
+                  pattern_id: originalPattern.id,
+                  svg_normal: originalPattern.svg_data,
+                  svg_mirrored: mirroredSvg
+                });
+              } catch (genError) {
+                console.error(`[SKIP_PAY] Failed to generate admin copy for pattern ${originalPattern.id}:`, genError);
+              }
+            }
+          }
+        }
+      } catch (adminActionError) {
+        console.error('[SKIP_PAY] Error performing post-payment admin actions:', adminActionError);
+      }
+
+      if (order.discount_code_id) {
+        try {
+          await UserDiscountCodeRedemption.create({
+            user_id: order.user_id,
+            discount_code_id: order.discount_code_id,
+            order_id: order.id
+          });
+          await DiscountCode.increment('current_total_uses', {
+            by: 1,
+            where: { id: order.discount_code_id }
+          });
+        } catch (redemptionError) {
+          console.error(`[SKIP_PAY] Failed to record discount code redemption for order ${order.id}:`, redemptionError);
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          token: `skip-pay-${buy_order}`,
+          url: '',
+          orderId: order.id,
+          orderNumber: order.order_number,
+          discountAmount,
+          finalAmount,
+          skip_pay: true
+        }
+      });
+    }
+    // --- END SKIP_PAY ---
+
     try {
       // Create Transbank transaction
       const response = await fetch(TBK_URL, {
