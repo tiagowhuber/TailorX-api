@@ -134,6 +134,10 @@ async function getPatternClass(patternType: string) {
     patternCode = 'hugo';
   } else if (patternTypeLower.includes('penelope')) {
     patternCode = 'penelope';
+  } else if (patternTypeLower.includes('teagan')) {
+    patternCode = 'teagan';
+  } else if (patternTypeLower.includes('tamiko')) {
+    patternCode = 'tamiko';
   }
   
   let PatternClass: any;
@@ -194,8 +198,20 @@ async function getPatternClass(patternType: string) {
         PatternClass = Sandy;
         break;
       }
+      case 'teagan': {
+        // @ts-ignore
+        const { Teagan } = await dynamicImport('@freesewing/teagan');
+        PatternClass = Teagan;
+        break;
+      }
+      case 'tamiko': {
+        // @ts-ignore
+        const { Tamiko } = await dynamicImport('@freesewing/tamiko');
+        PatternClass = Tamiko;
+        break;
+      }
       default:
-        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven, charlie, diana, lumira, hugo, penelope, sandy`);
+        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven, charlie, diana, lumira, hugo, penelope, sandy, teagan, tamiko`);
     }
 
     if (isMirrored) {
