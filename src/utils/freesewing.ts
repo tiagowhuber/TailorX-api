@@ -16,6 +16,7 @@ import type UserMeasurement from '../models/UserMeasurement';
 import type DesignMeasurement from '../models/DesignMeasurement';
 import { createMirroredPattern } from './MirroredPattern';
 import { parseHTML } from 'linkedom';
+import { getPatternConfig } from '../config/patternConfig';
 
 interface FreeSewingMeasurements {
   [key: string]: number
@@ -406,7 +407,8 @@ function reverseCommands(commands: PathCommand[]): PathCommand[] {
   return reversed;
 }
 
-export function cleanMirroredSvg(svgContent: string): string {
+export function cleanMirroredSvg(svgContent: string, patternCode?: string): string {
+  const patternCfg = getPatternConfig(patternCode ?? '');
   const { document } = parseHTML(svgContent);
   const svg = document.querySelector('svg');
   if (!svg) return svgContent;
@@ -457,17 +459,36 @@ export function cleanMirroredSvg(svgContent: string): string {
          }
       } else if (tagName === 'path') {
          const classList = child.getAttribute('class') || '';
-         // Check for fabric AND sa
-         if (classList.includes('fabric') && classList.includes('sa')) {
+         const classes = classList.split(/\s+/);
+         const isFabric = classes.includes('fabric');
+         const hasSa = classes.includes('sa');
+
+         // Determine if this path is the cut outline based on per-design config
+         const isOutline =
+           patternCfg.outlineMatcher === 'fabric-only'
+             ? isFabric && !hasSa  // Tamiko: plain fabric path with no sa
+             : isFabric && hasSa;  // default: fabric + sa
+
+         if (isOutline) {
             hasValidChildren = true;
             validPaths.push(child);
 
-            // Remove center line artifacts (seam allowance on fold lines)
             let d = child.getAttribute('d') || '';
-            const removePattern = /L\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*M\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*L\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*$/i;
-            if (removePattern.test(d)) {
-                d = d.replace(removePattern, '');
+
+            if (patternCfg.stripSubPaths) {
+              // Strip construction sub-paths appended after the first closed sub-path
+              const zIndex = d.search(/z/i);
+              if (zIndex !== -1) {
+                d = d.slice(0, zIndex + 1).trim();
                 child.setAttribute('d', d);
+              }
+            } else {
+              // Remove center line artifacts (seam allowance on fold lines)
+              const removePattern = /L\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*M\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*L\s*-?0(?:\.0+)?\s*,\s*[-+]?\d*\.?\d+\s*$/i;
+              if (removePattern.test(d)) {
+                  d = d.replace(removePattern, '');
+                  child.setAttribute('d', d);
+              }
             }
          } else {
             child.remove();

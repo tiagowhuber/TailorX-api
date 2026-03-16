@@ -209,7 +209,7 @@ export const createPayment = async (req: Request, res: Response) => {
                   measurements: originalPattern.measurements_used as any,
                   settings: originalPattern.settings_used as any,
                 });
-                mirroredSvg = cleanMirroredSvg(mirroredSvg);
+                mirroredSvg = cleanMirroredSvg(mirroredSvg, design.freesewing_pattern);
                 await OrderedPattern.create({
                   order_id: order.id,
                   pattern_id: originalPattern.id,
@@ -476,7 +476,7 @@ export const getPaymentState = async (req: Request, res: Response) => {
                     });
 
                     // Clean mirrored SVG
-                    mirroredSvg = cleanMirroredSvg(mirroredSvg);
+                    mirroredSvg = cleanMirroredSvg(mirroredSvg, design.freesewing_pattern);
 
                     // Create OrderedPattern
                     await OrderedPattern.create({

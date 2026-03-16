@@ -2,6 +2,7 @@ import { parseHTML } from 'linkedom';
 import { svgPathProperties } from 'svg-path-properties';
 import potpack from 'potpack';
 import JSZip from 'jszip';
+import { getPatternConfig } from '../config/patternConfig';
 
 interface Point {
   x: number;
@@ -69,10 +70,10 @@ export class TailorFitService {
    * 2. Nest pieces onto one or more cutting beds using bin-packing algorithm
    * 3. Generate PLT commands (single file) or ZIP archive (multiple beds)
    */
-  public async process(svgString: string): Promise<{ content: string | Buffer; mimeType: string; filename: string }> {
+  public async process(svgString: string, patternCode?: string): Promise<{ content: string | Buffer; mimeType: string; filename: string }> {
     console.log('\n========== STARTING SVG PROCESSING ==========');
     
-    const pieces = this.parseSVG(svgString);
+    const pieces = this.parseSVG(svgString, patternCode);
     console.log(`✓ Parsed ${pieces.length} valid pattern pieces from SVG\n`);
     
     const beds = this.nestPieces(pieces, TailorFitService.BED_WIDTH, TailorFitService.BED_HEIGHT);
@@ -127,8 +128,9 @@ export class TailorFitService {
    * @param svgString - Raw SVG content
    * @returns Array of pattern pieces with their coordinates and dimensions
    */
-  public parseSVG(svgString: string): PatternPiece[] {
+  public parseSVG(svgString: string, patternCode?: string): PatternPiece[] {
     console.log('[PARSE] Starting SVG parsing...');
+    const patternCfg = getPatternConfig(patternCode ?? '');
     const { document } = parseHTML(svgString);
     const paths = document.querySelectorAll('path');
     const pieces: PatternPiece[] = [];
@@ -140,9 +142,18 @@ export class TailorFitService {
       const classAttr = path.getAttribute('class') || '';
       const idStr = path.getAttribute('id') || `path_${index}`;
 
-      // Filter 1: Only accept 'fabric sa' (fabric with seam allowance)
-      if (!classAttr.includes('fabric sa')) {
-        console.log(`[SVG Debug] Ignored ${idStr} (Not 'fabric sa'. path_class: "${classAttr}")`);
+      const classes = classAttr.split(/\s+/);
+      const isFabric = classes.includes('fabric');
+      const hasSa = classes.includes('sa');
+
+      // Filter 1: Accept only paths matching this design's outline signature
+      const isOutline =
+        patternCfg.outlineMatcher === 'fabric-only'
+          ? isFabric && !hasSa  // Tamiko: plain fabric path, no sa class
+          : isFabric && hasSa;  // default: must have both fabric + sa
+
+      if (!isOutline) {
+        console.log(`[SVG Debug] Ignored ${idStr} (Not outline. path_class: "${classAttr}")`);
         return;
       }
 
@@ -164,10 +175,18 @@ export class TailorFitService {
         return;
       }
 
-      const d = path.getAttribute('d');
+      let d = path.getAttribute('d');
       if (!d) {
         console.log(`[SVG Debug] Ignored ${idStr} (No d attribute)`);
         return;
+      }
+
+      // Strip construction sub-paths when configured (e.g. Tamiko)
+      if (patternCfg.stripSubPaths) {
+        const zIndex = d.search(/z/i);
+        if (zIndex !== -1) {
+          d = d.slice(0, zIndex + 1).trim();
+        }
       }
 
       const points = this.flattenCurves(d);

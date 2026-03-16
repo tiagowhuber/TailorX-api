@@ -740,7 +740,7 @@ export const generateMirroredPattern = async (req: Request, res: Response) => {
     });
 
     // Clean mirrored SVG
-    svg = cleanMirroredSvg(svg);
+    svg = cleanMirroredSvg(svg, basePatternType);
     // Recalculate size
     sizeKb = Buffer.byteLength(svg, 'utf8') / 1024;
 
@@ -888,7 +888,22 @@ export const exportOrderedPatternToPLT = async (req: Request, res: Response) => 
       });
     }
 
-    const orderedPattern = await OrderedPattern.findByPk(id);
+    const orderedPattern = await OrderedPattern.findByPk(id, {
+      include: [
+        {
+          model: Pattern,
+          as: 'pattern',
+          attributes: ['id', 'design_id'],
+          include: [
+            {
+              model: Design,
+              as: 'design',
+              attributes: ['freesewing_pattern'],
+            },
+          ],
+        },
+      ],
+    });
     if (!orderedPattern) {
       return res.status(404).json({
         success: false,
@@ -907,7 +922,18 @@ export const exportOrderedPatternToPLT = async (req: Request, res: Response) => 
     }
 
     const service = new TailorFitService();
-    const result = await service.process(svgData);
+    const patternCode: string = (orderedPattern as any).pattern?.design?.freesewing_pattern ?? '';
+
+    // Try the mirrored SVG first. If it has no valid pieces (e.g. old records where
+    // cleanMirroredSvg incorrectly stripped the main fabric path), fall back to svg_normal.
+    let parsedPieces = service.parseSVG(svgData, patternCode);
+    let svgToProcess = svgData;
+    if (parsedPieces.length === 0 && orderedPattern.svg_normal) {
+      console.log('[PLT Export] svg_mirrored yielded 0 pieces — falling back to svg_normal');
+      svgToProcess = orderedPattern.svg_normal;
+    }
+
+    const result = await service.process(svgToProcess, patternCode);
 
     res.setHeader('Content-Type', result.mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
