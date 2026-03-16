@@ -6,11 +6,8 @@
  */
 
 // Use require for FreeSewing packages to avoid TypeScript module resolution issues
-const Aaron = require('@freesewing/aaron').Aaron;
 const Brian = require('@freesewing/brian').Brian;
-const Lumira = require('@freesewing/lumira').Lumira;
 const Diana = require('@freesewing/diana').Diana;
-const Penelope = require('@freesewing/penelope').Penelope;
 const Sven = require('@freesewing/sven').Sven;
 const theme = require('@freesewing/plugin-theme').pluginTheme;
 
@@ -120,24 +117,16 @@ async function getPatternClass(patternType: string) {
   let patternCode = patternTypeLower;
   if (patternTypeLower.includes('brian')) {
     patternCode = 'brian';
-  } else if (patternTypeLower.includes('aaron')) {
-    patternCode = 'aaron';
   } else if (patternTypeLower.includes('sven')) {
     patternCode = 'sven';
-  } else if (patternTypeLower.includes('charlie')) {
-    patternCode = 'charlie';
   } else if (patternTypeLower.includes('diana')) {
     patternCode = 'diana';
-  } else if (patternTypeLower.includes('lumira')) {
-    patternCode = 'lumira';
-  } else if (patternTypeLower.includes('hugo')) {
-    patternCode = 'hugo';
-  } else if (patternTypeLower.includes('penelope')) {
-    patternCode = 'penelope';
   } else if (patternTypeLower.includes('teagan')) {
     patternCode = 'teagan';
   } else if (patternTypeLower.includes('tamiko')) {
     patternCode = 'tamiko';
+  } else if (patternTypeLower.includes('sandy')) {
+    patternCode = 'sandy';
   } else if (patternTypeLower.includes('waralee')) {
     patternCode = 'waralee';
   }
@@ -146,28 +135,10 @@ async function getPatternClass(patternType: string) {
 
   try {
     switch (patternCode) {
-      case 'aaron': {
-        // @ts-ignore
-        const { Aaron } = await dynamicImport('@freesewing/aaron');
-        PatternClass = Aaron;
-        break;
-      }
       case 'brian': {
         // @ts-ignore
         const { Brian } = await dynamicImport('@freesewing/brian');
         PatternClass = Brian;
-        break;
-      }
-      case 'hugo': {
-        // @ts-ignore
-        const { Hugo } = await dynamicImport('@freesewing/hugo');
-        PatternClass = Hugo;
-        break;
-      }
-      case 'penelope': {
-        // @ts-ignore
-        const { Penelope } = await dynamicImport('@freesewing/penelope');
-        PatternClass = Penelope;
         break;
       }
       case 'sven': {
@@ -176,22 +147,10 @@ async function getPatternClass(patternType: string) {
         PatternClass = Sven;
         break;
       }
-      case 'charlie': {
-        // @ts-ignore
-        const { Charlie } = await dynamicImport('@freesewing/charlie');
-        PatternClass = Charlie;
-        break;
-      }
       case 'diana': {
         // @ts-ignore
         const { Diana } = await dynamicImport('@freesewing/diana');
         PatternClass = Diana;
-        break;
-      }
-      case 'lumira': {
-        // @ts-ignore
-        const { Lumira } = await dynamicImport('@freesewing/lumira');
-        PatternClass = Lumira;
         break;
       }
       case 'sandy': {
@@ -219,7 +178,7 @@ async function getPatternClass(patternType: string) {
         break;
       }
       default:
-        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: aaron, brian, sven, charlie, diana, lumira, hugo, penelope, sandy, teagan, tamiko, waralee`);
+        throw new Error(`Unsupported pattern type: ${patternType}. Available patterns: brian, sven, diana, teagan, tamiko, sandy, waralee`);
     }
 
     if (isMirrored) {

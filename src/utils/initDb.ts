@@ -1,4 +1,4 @@
-import { sequelize, MeasurementType, Design, DesignMeasurement } from '../models';
+import { sequelize, MeasurementType } from '../models';
 
 export const initializeDatabase = async () => {
   try {
@@ -25,33 +25,6 @@ export const initializeDatabase = async () => {
       ]);
       
       console.log('Sample measurement types created!');
-      
-      // Insert sample design (Aaron pattern)
-      const aaronDesign = await Design.create({
-        name: 'Aaron A-Shirt',
-        description: 'A classic athletic tank top / A-shirt pattern',
-        freesewing_pattern: 'aaron',
-        base_price: 15.00,
-        default_settings: { sa: 10, complete: true, paperless: false },
-      });
-      
-      console.log('Sample design created!');
-      
-      // Link Aaron design to its required measurements
-      const requiredMeasurementKeys = ['biceps', 'chest', 'hips', 'hpsToBust', 'hpsToWaistBack', 'neck', 'shoulderSlope', 'shoulderToShoulder', 'waistToArmpit', 'waistToHips'];
-      
-      for (const key of requiredMeasurementKeys) {
-        const measurementType = measurementTypes.find(mt => mt.freesewing_key === key);
-        if (measurementType) {
-          await DesignMeasurement.create({
-            design_id: aaronDesign.id,
-            measurement_type_id: measurementType.id,
-            is_required: true,
-          });
-        }
-      }
-      
-      console.log('Design measurements linked!');
     }
   } catch (error) {
     console.error('Error initializing database:', error);

@@ -24,29 +24,7 @@ const DESIGN_CONFIGS = [
         image: '/assets/model-images/sven.jpg',
         measurements: [
             'biceps', 'chest', 'hpsToWaistBack', 'neck', 'shoulderSlope', 
-            'shoulderToShoulder', 'waistToHips', 'hips', 'shoulderToWrist', 'wrist', 'head' // Head might be optional but good for neck opening
-        ]
-    },
-    {
-        key: 'hugo',
-        name: 'Hugo Hoodie',
-        description: 'A simple, classic hoodie pattern.',
-        price: 25000,
-        image: '/assets/model-images/hugo.jpg',
-        measurements: [
-            'biceps', 'chest', 'head', 'hips', 'hpsToWaistBack', 
-            'neck', 'shoulderSlope', 'shoulderToShoulder', 'waistToHips', 'wrist', 'shoulderToWrist'
-        ]
-    },
-    {
-        key: 'aaron',
-        name: 'Aaron A-Shirt',
-        description: 'A simple A-shirt or tank top.',
-        price: 20000,
-        image: '/assets/model-images/aaron.jpg',
-        measurements: [
-            'biceps', 'chest', 'hpsToWaistBack', 'neck', 'shoulderSlope', 
-            'shoulderToShoulder', 'waistToArmpit', 'waistToHips', 'hips', 'hpsToBust'
+            'shoulderToShoulder', 'waistToHips', 'hips', 'shoulderToWrist', 'wrist', 'head'
         ]
     },
     {
@@ -69,33 +47,6 @@ const DESIGN_CONFIGS = [
             'biceps', 'chest', 'hpsToWaistBack', 'neck', 'shoulderSlope',
             'shoulderToShoulder', 'waistToArmpit', 'waistToHips', 'hips', 'hpsToBust'
         ]
-    },
-    {
-        key: 'penelope',
-        name: 'Penelope Pencil Skirt',
-        description: 'A fitted pencil skirt.',
-        price: 23000,
-        image: '/assets/model-images/penelope.jpg',
-        measurements: [
-            'waist', 'hips', 'waistToHips', 'waistToKnee', 'waistToSeat', 'seat'
-            // Note: 'seat' often maps to hips in some contexts, but Penelope explicitly asks for seat.
-            // We need to ensure 'seat' and 'waistToSeat' exist as measurement types.
-        ]
-    },
-    {
-        key: 'lumira',
-        name: 'Lumira Leggings',
-        description: 'Leggings adapted for cycling.',
-        price: 26000,
-        image: '/assets/model-images/lumira.jpg',
-        measurements: [
-             'waist', 'hips', 'waistToHips', 'inseam', 'knee', 'ankle', 
-             'waistToKnee', 'waistToFloor' // Common leg measurements
-             // Lumira specifically asks for:
-             // waist, waistBack, hips, seat, seatBack, upperLeg, knee, ankle, heel, inseam, crossSeam, crossSeamFront...
-             // For simplicity, we'll stick to a core set if possible, but let's add the specific ones.
-             , 'seat', 'upperLeg', 'heel', 'crossSeam', 'crossSeamFront'
-        ]
     }
 ];
 
@@ -105,16 +56,7 @@ const MEASUREMENT_DETAILS: Record<string, {name: string, description: string}> =
     'shoulderToWrist': { name: 'Shoulder to Wrist', description: 'Length from shoulder to wrist' },
     'wrist': { name: 'Wrist Circumference', description: 'Circumference of the wrist' },
     'waistToFloor': { name: 'Waist to Floor', description: 'Distance from waist to floor' },
-    'waist': { name: 'Waist Circumference', description: 'Natural waist circumference' },
-    'waistToKnee': { name: 'Waist to Knee', description: 'Distance from waist to knee' },
-    'waistToSeat': { name: 'Waist to Seat', description: 'Distance from waist to seat' },
-    'seat': { name: 'Seat Circumference', description: 'Circumference of the seat (fullest part of hips/buttocks)' },
-    'ankle': { name: 'Ankle Circumference', description: 'Circumference of the ankle' },
-    'knee': { name: 'Knee Circumference', description: 'Circumference of the knee' },
-    'upperLeg': { name: 'Upper Leg Circumference', description: 'Circumference of the upper leg (thigh)' },
-    'heel': { name: 'Heel Circumference', description: 'Circumference of the heel' },
-    'crossSeam': { name: 'Cross Seam', description: 'Total crotch length (front waist to back waist)' },
-    'crossSeamFront': { name: 'Cross Seam Front', description: 'Front crotch length' }
+    'waist': { name: 'Waist Circumference', description: 'Natural waist circumference' }
 };
 
 async function ensureDesignMeasurements() {
