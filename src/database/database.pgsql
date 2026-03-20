@@ -37,6 +37,7 @@ CREATE TABLE measurement_types (
     name VARCHAR(100) UNIQUE NOT NULL,
     description TEXT,
     freesewing_key VARCHAR(100) NULL, -- optional: maps to FreeSewing measurement names
+    guide_image_url VARCHAR(500) NULL, -- optional: link to a guide image for this measurement
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

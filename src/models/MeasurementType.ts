@@ -6,6 +6,7 @@ interface MeasurementTypeAttributes {
   name: string;
   description?: string;
   freesewing_key?: string;
+  guide_image_url?: string;
   created_at?: Date;
 }
 
@@ -16,6 +17,7 @@ class MeasurementType extends Model<MeasurementTypeAttributes, MeasurementTypeCr
   public name!: string;
   public description?: string;
   public freesewing_key?: string;
+  public guide_image_url?: string;
   public created_at?: Date;
 }
 
@@ -37,6 +39,10 @@ MeasurementType.init(
     },
     freesewing_key: {
       type: DataTypes.STRING(100),
+      allowNull: true,
+    },
+    guide_image_url: {
+      type: DataTypes.STRING(500),
       allowNull: true,
     },
     created_at: {
