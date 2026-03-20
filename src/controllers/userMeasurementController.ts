@@ -340,7 +340,8 @@ export const batchCreateUpdateUserMeasurements = async (req: Request, res: Respo
         }
 
         results.push(userMeasurement);
-      } catch {
+      } catch (innerError) {
+        console.error('Failed to process measurement for type', measurement.measurement_type_id, ':', innerError);
         errors.push({
           measurement_type_id: measurement.measurement_type_id,
           error: 'Failed to process measurement',
