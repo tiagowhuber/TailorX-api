@@ -255,7 +255,7 @@ export const getDesignMeasurements = async (req: Request, res: Response) => {
         {
           model: MeasurementType,
           as: 'measurementType',
-          attributes: ['id', 'name', 'description', 'freesewing_key'],
+          attributes: ['id', 'name', 'description', 'freesewing_key', 'guide_image_url'],
         },
       ],
       order: [['measurement_type_id', 'ASC']],
