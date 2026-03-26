@@ -34,8 +34,10 @@ const DESIGN_SPECS: DesignSpec[] = [
   {
     key: 'brian',
     required: [
+      // shoulderSlope is defaulted to 13° at generation time (freesewing.ts),
+      // so it is intentionally omitted here — users are not required to provide it.
       'biceps', 'chest', 'hpsToBust', 'hpsToWaistBack', 'neck',
-      'shoulderToShoulder', 'shoulderSlope', 'waistToArmpit',
+      'shoulderToShoulder', 'waistToArmpit',
       'waistToHips', 'shoulderToWrist', 'wrist',
     ],
     optional: ['highBust'],
@@ -43,8 +45,9 @@ const DESIGN_SPECS: DesignSpec[] = [
   {
     key: 'sven',
     required: [
+      // shoulderSlope is defaulted to 13° at generation time (freesewing.ts).
       'hips', 'waist', 'biceps', 'chest', 'hpsToBust', 'hpsToWaistBack',
-      'neck', 'shoulderToShoulder', 'shoulderSlope', 'waistToArmpit',
+      'neck', 'shoulderToShoulder', 'waistToArmpit',
       'waistToHips', 'shoulderToWrist', 'wrist',
     ],
     optional: ['highBust'],
@@ -52,8 +55,9 @@ const DESIGN_SPECS: DesignSpec[] = [
   {
     key: 'diana',
     required: [
+      // shoulderSlope is defaulted to 13° at generation time (freesewing.ts).
       'biceps', 'chest', 'hpsToWaistBack', 'hips', 'waist', 'waistToHips',
-      'neck', 'shoulderSlope', 'shoulderToShoulder', 'shoulderToWrist',
+      'neck', 'shoulderToShoulder', 'shoulderToWrist',
       'wrist', 'hpsToBust', 'waistToArmpit',
     ],
     optional: ['highBust'],
@@ -66,8 +70,9 @@ const DESIGN_SPECS: DesignSpec[] = [
   {
     key: 'teagan',
     required: [
+      // shoulderSlope is defaulted to 13° at generation time (freesewing.ts).
       'hips', 'waist', 'biceps', 'chest', 'hpsToBust', 'hpsToWaistBack',
-      'neck', 'shoulderToShoulder', 'shoulderSlope', 'waistToArmpit',
+      'neck', 'shoulderToShoulder', 'waistToArmpit',
       'waistToHips',
     ],
     optional: ['highBust'],
@@ -75,7 +80,8 @@ const DESIGN_SPECS: DesignSpec[] = [
   {
     key: 'tamiko',
     required: [
-      'shoulderToShoulder', 'chest', 'hpsToWaistBack', 'shoulderSlope',
+      // shoulderSlope is defaulted to 13° at generation time (freesewing.ts).
+      'shoulderToShoulder', 'chest', 'hpsToWaistBack',
       'waistToHips',
     ],
     optional: ['highBust'],

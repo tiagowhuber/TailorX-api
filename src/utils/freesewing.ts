@@ -201,6 +201,18 @@ async function getPatternClass(patternType: string) {
 }
 
 /**
+ * Degree-based measurements that are hard to self-measure and have a well-known
+ * population average. These are applied as defaults so users are not blocked by
+ * them, but any stored user value always takes precedence.
+ *
+ * shoulderSlope — 13° is FreeSewing's documented community average and the value
+ * used in all official sample scripts.
+ */
+const DEGREE_MEASUREMENT_DEFAULTS: FreeSewingMeasurements = {
+  shoulderSlope: 13,
+}
+
+/**
  * Generate a FreeSewing pattern and return SVG string
  * 
  * @param options - Pattern generation options
@@ -212,6 +224,12 @@ export async function generateFreeSewingPattern(
 ): Promise<GeneratePatternResult> {
   const { patternType, measurements, settings = {} } = options
 
+  // Apply degree-measurement defaults first; user-provided values override them.
+  const resolvedMeasurements: FreeSewingMeasurements = {
+    ...DEGREE_MEASUREMENT_DEFAULTS,
+    ...measurements,
+  }
+
   try {
     // Get the appropriate pattern class
     const PatternClass = await getPatternClass(patternType);
@@ -222,7 +240,7 @@ export async function generateFreeSewingPattern(
 
     // FreeSewing v4 pattern configuration
     const patternConfig: any = {
-      measurements,
+      measurements: resolvedMeasurements,
       // Default settings for pattern generation
       sa: settings.sa ?? 10, // Seam allowance in mm
       complete: settings.complete ?? true,
@@ -235,6 +253,7 @@ export async function generateFreeSewingPattern(
       delete patternConfig.only;
     }
 
+    console.log('Resolved measurements (with defaults):', resolvedMeasurements)
     console.log('Generating pattern with config:', patternConfig)
 
     // Generate the pattern using FreeSewing v4 API
