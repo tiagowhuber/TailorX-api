@@ -8,7 +8,9 @@
     "start": "node index.js",
     "postinstall": "npm run build",
     "db:init": "ts-node src/scripts/initDb.ts",
-    "db:sync": "ts-node -e \"import('./src/models').then(({sequelize}) => sequelize.sync({alter: true}).then(() => process.exit(0)))\""
+    "db:sync": "ts-node -e \"import('./src/models').then(({sequelize}) => sequelize.sync({alter: true}).then(() => process.exit(0)))\"",
+    "db:fix-measurements": "ts-node \"src/scripts/implementation scripts/fixDesignMeasurements.ts\"",
+    "db:fix-measurements:dry": "ts-node \"src/scripts/implementation scripts/fixDesignMeasurements.ts\" --dry-run"
   },
   "keywords": [],
   "author": "",

@@ -253,6 +253,18 @@ export async function generateFreeSewingPattern(
     // Render to SVG
     const svg = draftedPattern.render()
 
+    // Guard: FreeSewing silently produces a 0×0 SVG with an empty #fs-container
+    // when required measurements are missing. Detect and surface this as an error
+    // rather than saving a useless blank file.
+    if (svg.includes('viewBox="0 0 0 0"') || svg.includes("viewBox='0 0 0 0'")) {
+      throw new Error(
+        `FreeSewing produced an empty pattern for "${patternType}". ` +
+        `One or more measurements required by FreeSewing are missing from the ` +
+        `design's configuration. Run the fixDesignMeasurements seeder script to sync ` +
+        `design_measurements against the canonical FreeSewing measurement lists.`
+      )
+    }
+
     // Calculate size in KB
     const sizeKb = Buffer.byteLength(svg, 'utf8') / 1024
 
