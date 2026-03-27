@@ -53,6 +53,7 @@ Pattern.hasOne(OrderedPattern, { foreignKey: 'pattern_id', as: 'orderedPattern' 
 // Order associations
 Order.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Order.belongsTo(DiscountCode, { foreignKey: 'discount_code_id', as: 'discountCode' });
+Order.belongsTo(UserAddress, { foreignKey: 'shipping_address_id', as: 'shippingAddress' });
 Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items' });
 Order.hasMany(OrderStatusHistory, { foreignKey: 'order_id', as: 'statusHistory' });
 Order.hasMany(OrderedPattern, { foreignKey: 'order_id', as: 'orderedPatterns' });

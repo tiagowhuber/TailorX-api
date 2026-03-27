@@ -9,6 +9,8 @@ interface UserAttributes {
   first_name?: string | undefined;
   last_name?: string | undefined;
   profile_picture_url?: string | undefined;
+  phone?: string | undefined;
+  rut?: string | undefined;
   role: string;
   created_at?: Date;
   updated_at?: Date;
@@ -23,6 +25,8 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public first_name?: string | undefined;
   public last_name?: string | undefined;
   public profile_picture_url?: string | undefined;
+  public phone?: string | undefined;
+  public rut?: string | undefined;
   public role!: string;
   public created_at?: Date;
   public updated_at?: Date;
@@ -68,6 +72,14 @@ User.init(
     },
     profile_picture_url: {
       type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    rut: {
+      type: DataTypes.STRING(12),
       allowNull: true,
     },
     role: {

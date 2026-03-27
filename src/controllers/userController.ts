@@ -108,7 +108,7 @@ export const createUser = async (req: Request, res: Response) => {
 export const updateUser = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { email, first_name, last_name, password } = req.body;
+    const { email, first_name, last_name, password, phone, rut } = req.body;
     
     // Parse ID
     const userId = Number(id);
@@ -142,6 +142,8 @@ export const updateUser = async (req: Request, res: Response) => {
     if (email) updateData.email = email;
     if (first_name !== undefined) updateData.first_name = first_name;
     if (last_name !== undefined) updateData.last_name = last_name;
+    if (phone !== undefined) updateData.phone = phone;
+    if (rut !== undefined) updateData.rut = rut;
     if (password) {
       updateData.password_hash = await User.hashPassword(password);
     }

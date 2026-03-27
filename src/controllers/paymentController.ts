@@ -3,6 +3,7 @@ import Order from '../models/Order';
 import OrderItem from '../models/OrderItem';
 import OrderStatusHistory from '../models/OrderStatusHistory';
 import User from '../models/User';
+import UserAddress from '../models/UserAddress';
 import Pattern from '../models/Pattern';
 import Design from '../models/Design';
 import OrderedPattern from '../models/OrderedPattern';
@@ -33,7 +34,7 @@ interface CartItem {
  */
 export const createPayment = async (req: Request, res: Response) => {
   console.log("Creating payment with body:", req.body);
-  const { cart, user_id, return_url, subtotal, discountCode } = req.body;
+  const { cart, user_id, return_url, subtotal, discountCode, shipping_address_id, contact_phone, rut } = req.body;
   
   if (!cart || cart.length <= 0 || !Array.isArray(cart)) {
     return res.status(400).json({ 
@@ -56,6 +57,27 @@ export const createPayment = async (req: Request, res: Response) => {
     });
   }
 
+  if (!shipping_address_id) {
+    return res.status(400).json({
+      success: false,
+      message: "Shipping address is required"
+    });
+  }
+
+  if (!contact_phone || !contact_phone.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "Contact phone is required"
+    });
+  }
+
+  if (!rut || !rut.trim()) {
+    return res.status(400).json({
+      success: false,
+      message: "RUT is required"
+    });
+  }
+
   try {
     // Verify user exists
     const user = await User.findByPk(user_id);
@@ -64,6 +86,34 @@ export const createPayment = async (req: Request, res: Response) => {
         success: false,
         message: "User not found" 
       });
+    }
+
+    // Verify shipping address exists and belongs to the user
+    const shippingAddress = await UserAddress.findOne({
+      where: { id: shipping_address_id, user_id: user_id }
+    });
+    if (!shippingAddress) {
+      return res.status(404).json({
+        success: false,
+        message: "Shipping address not found or does not belong to this user"
+      });
+    }
+
+    // Build shipping address text snapshot
+    const addressParts = [
+      shippingAddress.street_address,
+      shippingAddress.apartment_unit,
+      shippingAddress.comuna,
+      shippingAddress.region,
+    ].filter(Boolean);
+    const shippingAddressSnapshot = addressParts.join(', ');
+
+    // Auto-save phone and rut to user profile if not already set
+    const profileUpdate: any = {};
+    if (!user.phone && contact_phone) profileUpdate.phone = contact_phone.trim();
+    if (!user.rut && rut) profileUpdate.rut = rut.trim();
+    if (Object.keys(profileUpdate).length > 0) {
+      await user.update(profileUpdate);
     }
 
     // Verify all patterns exist and are valid
@@ -139,7 +189,11 @@ export const createPayment = async (req: Request, res: Response) => {
       payment_method: 'webpay',
       session_id: session_id,
       payment_token: '',
-      payment_url: ''
+      payment_url: '',
+      shipping_address_id: shippingAddress.id,
+      shipping_address: shippingAddressSnapshot,
+      contact_phone: contact_phone.trim(),
+      rut: rut.trim()
     });
 
     // Create order items from cart

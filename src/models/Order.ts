@@ -10,8 +10,11 @@ interface OrderAttributes {
   discount_code_id?: number | null;
   discount_amount?: number;
   final_amount?: number;
-  shipping_address?: string; // serialized JSON or text
-  billing_address?: string; // serialized JSON or text
+  shipping_address?: string; // serialized JSON or text snapshot
+  shipping_address_id?: number | null; // FK to user_addresses
+  contact_phone?: string;
+  rut?: string;
+  billing_address?: string;
   payment_status?: string;
   payment_method?: string;
   payment_token?: string;
@@ -34,6 +37,9 @@ class Order extends Model<OrderAttributes, OrderCreationAttributes> implements O
   public discount_amount?: number;
   public final_amount?: number;
   public shipping_address?: string;
+  public shipping_address_id?: number | null;
+  public contact_phone?: string;
+  public rut?: string;
   public billing_address?: string;
   public payment_status?: string;
   public payment_method?: string;
@@ -76,6 +82,22 @@ Order.init(
     },
     shipping_address: {
       type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    shipping_address_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'user_addresses',
+        key: 'id',
+      },
+    },
+    contact_phone: {
+      type: DataTypes.STRING(20),
+      allowNull: true,
+    },
+    rut: {
+      type: DataTypes.STRING(12),
       allowNull: true,
     },
     discount_code_id: {

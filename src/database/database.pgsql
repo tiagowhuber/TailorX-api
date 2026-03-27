@@ -8,6 +8,8 @@ CREATE TABLE users (
     first_name VARCHAR(100),
     last_name VARCHAR(100),
     profile_picture_url VARCHAR(500),
+    phone VARCHAR(20),
+    rut VARCHAR(12),
     role VARCHAR(50) DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -115,6 +117,9 @@ CREATE TABLE orders (
     discount_amount NUMERIC(10, 2) DEFAULT 0,
     final_amount NUMERIC(10, 2),
     shipping_address TEXT,
+    shipping_address_id INTEGER REFERENCES user_addresses(id) ON DELETE SET NULL,
+    contact_phone VARCHAR(20),
+    rut VARCHAR(12),
     billing_address TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
