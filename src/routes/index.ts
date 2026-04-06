@@ -10,6 +10,7 @@ import discountCodeRoutes from './discountCodeRoutes';
 import paymentRoutes from './paymentRoutes';
 import tailorVisionRoutes from './tailorVision';
 import userAddressRoutes from './userAddresses';
+import batchRoutes from './batch';
 
 
 const router = Router();
@@ -27,5 +28,6 @@ router.use('/payments', paymentRoutes);
 router.use('/tailor-vision', tailorVisionRoutes);
 router.use('/user-addresses', userAddressRoutes);
 router.use('/tailor-vision', tailorVisionRoutes);
+router.use('/batch', batchRoutes);
 
 export default router;
