@@ -7,7 +7,8 @@ import {
   generateFreeSewingPattern,
   extractRequiredMeasurementKeys,
 } from '../utils/freesewing';
-import { TailorFitService } from '../services/TailorFitService';
+import { TailorFitService, PatternLayoutStats } from '../services/TailorFitService';
+import { generateLayoutReport } from '../utils/layoutReportGenerator';
 
 function toSlug(str: string): string {
   return str
@@ -97,6 +98,8 @@ export const batchGenerate = async (req: Request, res: Response) => {
       reason?: string;
     }> = [];
 
+    const layoutAnalysisEntries: PatternLayoutStats[] = [];
+
     for (const design of designs) {
       const designMeasurements = designMeasurementsMap.get(design.id)!;
       const requiredKeys = extractRequiredMeasurementKeys(designMeasurements);
@@ -149,10 +152,22 @@ export const batchGenerate = async (req: Request, res: Response) => {
           continue;
         }
 
-        let pltResult: { content: string | Buffer; mimeType: string; filename: string };
+        const personSlug = toSlug(`${user.first_name}_${user.last_name}_${user.id}`);
+        const designSlug = toSlug(`${design.name}_${design.id}`);
+
+        let pltResult: { content: string | Buffer; mimeType: string; filename: string; stats: PatternLayoutStats | null };
         try {
           const service = new TailorFitService();
-          pltResult = await service.process(svg, design.freesewing_pattern!);
+          pltResult = await service.process(svg, design.freesewing_pattern!, {
+            userId:     user.id,
+            userName:   `${user.first_name} ${user.last_name}`,
+            designId:   design.id,
+            designName: design.name,
+            patternKey: `${personSlug}__${designSlug}`
+          });
+          if (pltResult.stats) {
+            layoutAnalysisEntries.push(pltResult.stats);
+          }
         } catch (err: any) {
           results.push({
             userId: user.id,
@@ -162,9 +177,6 @@ export const batchGenerate = async (req: Request, res: Response) => {
           });
           continue;
         }
-
-        const personSlug = toSlug(`${user.first_name}_${user.last_name}_${user.id}`);
-        const designSlug = toSlug(`${design.name}_${design.id}`);
         const ext = pltResult.mimeType === 'application/zip' ? 'zip' : 'plt';
         const filename = `${rootFolder}/${personSlug}/${designSlug}.${ext}`;
 
@@ -199,6 +211,15 @@ export const batchGenerate = async (req: Request, res: Response) => {
     };
 
     zip.file(`${rootFolder}/summary.json`, JSON.stringify(summary, null, 2));
+
+    const layoutAnalysis = {
+      generated_at: new Date().toISOString(),
+      total_patterns: layoutAnalysisEntries.length,
+      bed_dimensions: { widthMm: 2500, heightMm: 1300 },
+      patterns: layoutAnalysisEntries,
+    };
+    zip.file(`${rootFolder}/layout_analysis.json`, JSON.stringify(layoutAnalysis, null, 2));
+    zip.file(`${rootFolder}/layout_report.html`, generateLayoutReport(layoutAnalysis));
 
     const buffer = await zip.generateAsync({ type: 'nodebuffer' });
 

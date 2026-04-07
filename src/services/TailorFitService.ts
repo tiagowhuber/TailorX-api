@@ -35,6 +35,56 @@ interface Bed {
   width: number;
   height: number;
   reusableArea?: ReusableArea;
+  usedHeightMm: number; // safeY computed in nestPieces
+}
+
+// ---- Layout Analysis Interfaces ----
+
+interface SvgLayoutStats {
+  bboxWidthMm: number;
+  bboxHeightMm: number;
+  scaleFactor: number;        // BED_WIDTH / bboxWidthMm
+  normalizedHeightMm: number; // bboxHeightMm * scaleFactor
+  lerHeightMm: number;        // max(0, BED_HEIGHT - normalizedHeightMm)
+  lerAreaMm2: number;         // BED_WIDTH * lerHeightMm
+  lerRatio: number;           // lerAreaMm2 / (BED_WIDTH * BED_HEIGHT)
+}
+
+interface PltBedStats {
+  bedIndex: number;
+  usedHeightMm: number;
+  lerHeightMm: number;
+  lerAreaMm2: number;
+  lerRatio: number;
+  efficiency: number;
+  pieceCount: number;
+}
+
+interface PltLayoutStats {
+  beds: PltBedStats[];
+  aggregateLerAreaMm2: number;
+  aggregateLerRatio: number;
+  totalBeds: number;
+}
+
+interface LayoutComparison {
+  heightReductionMm: number;
+  heightReductionPct: number;
+  lerImprovementMm2: number;
+  lerImprovementPct: number;
+  summary: string;
+}
+
+export interface PatternLayoutStats {
+  patternKey: string;
+  userId: number;
+  userName: string;
+  designId: number;
+  designName: string;
+  pieceCount: number;
+  svg: SvgLayoutStats;
+  plt: PltLayoutStats;
+  comparison: LayoutComparison;
 }
 
 /**
@@ -70,15 +120,26 @@ export class TailorFitService {
    * 2. Nest pieces onto one or more cutting beds using bin-packing algorithm
    * 3. Generate PLT commands (single file) or ZIP archive (multiple beds)
    */
-  public async process(svgString: string, patternCode?: string): Promise<{ content: string | Buffer; mimeType: string; filename: string }> {
+  public async process(
+    svgString: string,
+    patternCode?: string,
+    statsContext?: {
+      userId: number; userName: string;
+      designId: number; designName: string;
+      patternKey: string;
+    }
+  ): Promise<{ content: string | Buffer; mimeType: string; filename: string; stats: PatternLayoutStats | null }> {
     console.log('\n========== STARTING SVG PROCESSING ==========');
-    
+
     const pieces = this.parseSVG(svgString, patternCode);
     console.log(`✓ Parsed ${pieces.length} valid pattern pieces from SVG\n`);
-    
+
+    // Capture SVG layout stats BEFORE nestPieces mutates piece.points
+    const svgStats = this.computeSvgLayoutStats(pieces);
+
     const beds = this.nestPieces(pieces, TailorFitService.BED_WIDTH, TailorFitService.BED_HEIGHT);
     console.log(`\n✓ Nested pieces into ${beds.length} bed(s)`);
-    
+
     if (beds.length === 0) {
         throw new Error("No valid pattern pieces found to process.");
     }
@@ -93,13 +154,29 @@ export class TailorFitService {
     });
     console.log('==========================================\n');
 
+    // Compute PLT and comparison stats
+    const pltStats = this.computePltLayoutStats(beds);
+    const comparison = this.buildLayoutComparison(svgStats, pltStats);
+    const stats: PatternLayoutStats | null = statsContext ? {
+      patternKey:  statsContext.patternKey,
+      userId:      statsContext.userId,
+      userName:    statsContext.userName,
+      designId:    statsContext.designId,
+      designName:  statsContext.designName,
+      pieceCount:  pieces.length,
+      svg:         svgStats,
+      plt:         pltStats,
+      comparison
+    } : null;
+
     // Generate output: single PLT file or ZIP archive with multiple PLT files
     if (beds.length === 1 && beds[0]) {
       const pltContent = this.convertToPLT(beds[0]);
       return {
         content: pltContent,
         mimeType: 'application/plt',
-        filename: 'pattern.plt'
+        filename: 'pattern.plt',
+        stats
       };
     } else {
       const zip = new JSZip();
@@ -111,7 +188,8 @@ export class TailorFitService {
       return {
         content: content,
         mimeType: 'application/zip',
-        filename: 'pattern_set.zip'
+        filename: 'pattern_set.zip',
+        stats
       };
     }
   }
@@ -539,7 +617,8 @@ export class TailorFitService {
         efficiency,
         width: bedWidth,
         height: bedHeight,
-        reusableArea: bestReusable
+        reusableArea: bestReusable,
+        usedHeightMm: safeY
       });
 
       remainingPieces = nextRemaining;
@@ -561,12 +640,97 @@ export class TailorFitService {
     return beds;
   }
 
+  // ---- Layout Analysis Helpers ----
+
+  /**
+   * Compute the SVG layout stats from pieces in their original SVG positions.
+   * Must be called BEFORE nestPieces (which mutates piece.points).
+   * piece.originalPoints is safe: normalizePiece never touches it.
+   */
+  private computeSvgLayoutStats(pieces: PatternPiece[]): SvgLayoutStats {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const piece of pieces) {
+      for (const p of piece.originalPoints) {
+        if (p.x < minX) minX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y > maxY) maxY = p.y;
+      }
+    }
+
+    const bboxWidthMm  = maxX - minX;
+    const bboxHeightMm = maxY - minY;
+    const scaleFactor  = bboxWidthMm > 0 ? TailorFitService.BED_WIDTH / bboxWidthMm : 1;
+    const normalizedHeightMm = bboxHeightMm * scaleFactor;
+    const lerHeightMm = Math.max(0, TailorFitService.BED_HEIGHT - normalizedHeightMm);
+    const lerAreaMm2  = TailorFitService.BED_WIDTH * lerHeightMm;
+    const lerRatio    = lerAreaMm2 / (TailorFitService.BED_WIDTH * TailorFitService.BED_HEIGHT);
+
+    return { bboxWidthMm, bboxHeightMm, scaleFactor, normalizedHeightMm, lerHeightMm, lerAreaMm2, lerRatio };
+  }
+
+  /**
+   * Compute PLT layout stats from the nested beds.
+   */
+  private computePltLayoutStats(beds: Bed[]): PltLayoutStats {
+    const bedArea = TailorFitService.BED_WIDTH * TailorFitService.BED_HEIGHT;
+
+    const bedStats: PltBedStats[] = beds.map((bed, idx) => {
+      const lerHeightMm = Math.max(0, TailorFitService.BED_HEIGHT - bed.usedHeightMm);
+      const lerAreaMm2  = TailorFitService.BED_WIDTH * lerHeightMm;
+      return {
+        bedIndex:     idx + 1,
+        usedHeightMm: bed.usedHeightMm,
+        lerHeightMm,
+        lerAreaMm2,
+        lerRatio:     lerAreaMm2 / bedArea,
+        efficiency:   bed.efficiency,
+        pieceCount:   bed.pieces.length
+      };
+    });
+
+    const aggregateLerAreaMm2 = bedStats.reduce((sum, b) => sum + b.lerAreaMm2, 0);
+    const aggregateLerRatio   = beds.length > 0 ? aggregateLerAreaMm2 / (beds.length * bedArea) : 0;
+
+    return { beds: bedStats, aggregateLerAreaMm2, aggregateLerRatio, totalBeds: beds.length };
+  }
+
+  /**
+   * Build a human-readable comparison between SVG original and PLT optimised layouts.
+   * Comparison is always SVG vs PLT bed 1.
+   */
+  private buildLayoutComparison(svg: SvgLayoutStats, plt: PltLayoutStats): LayoutComparison {
+    const bed1 = plt.beds[0];
+    if (!bed1) {
+      return { heightReductionMm: 0, heightReductionPct: 0, lerImprovementMm2: 0, lerImprovementPct: 0, summary: 'No PLT beds available for comparison.' };
+    }
+
+    const heightReductionMm  = svg.normalizedHeightMm - bed1.usedHeightMm;
+    const heightReductionPct = svg.normalizedHeightMm > 0 ? (heightReductionMm / svg.normalizedHeightMm) * 100 : 0;
+    const lerImprovementMm2  = bed1.lerAreaMm2 - svg.lerAreaMm2;
+    const bedAreaMm2         = TailorFitService.BED_WIDTH * TailorFitService.BED_HEIGHT;
+    const lerImprovementPct  = bedAreaMm2 > 0 ? (lerImprovementMm2 / bedAreaMm2) * 100 : 0;
+
+    const direction = heightReductionMm >= 0 ? 'reduced' : 'increased';
+    const absH      = Math.abs(heightReductionMm).toFixed(1);
+    const absHPct   = Math.abs(heightReductionPct).toFixed(1);
+    const lerDir    = lerImprovementMm2 >= 0 ? 'gained' : 'lost';
+    const absLer    = (Math.abs(lerImprovementMm2) / 1_000_000).toFixed(4);
+    const absLerPct = Math.abs(lerImprovementPct).toFixed(1);
+
+    const summary =
+      `PLT nesting ${direction} bed height by ${absH}mm (${absHPct}%) vs SVG layout. ` +
+      `Free (LER) area ${lerDir} by ${absLer}m² (${absLerPct}%).`;
+
+    return { heightReductionMm, heightReductionPct, lerImprovementMm2, lerImprovementPct, summary };
+  }
+
   /**
    * Normalize piece coordinates so the bounding box starts at (0, 0).
-   * 
+   *
    * Shifts all points so the top-left corner of the bounding box is at origin.
    * Updates the piece's width and height properties.
-   * 
+   *
    * @param piece - Pattern piece to normalize (modified in place)
    */
   private normalizePiece(piece: PatternPiece) {
