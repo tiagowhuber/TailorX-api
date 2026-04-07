@@ -75,6 +75,16 @@ interface LayoutComparison {
   summary: string;
 }
 
+export interface BedVisualization {
+  bedIndex: number;       // 1-based
+  widthMm: number;
+  heightMm: number;
+  usedHeightMm: number;   // safeY — where pieces end
+  lerHeightMm: number;   // BED_HEIGHT - usedHeightMm
+  lerAreaMm2: number;
+  pieces: { id: string; x: number; y: number; width: number; height: number }[];
+}
+
 export interface PatternLayoutStats {
   patternKey: string;
   userId: number;
@@ -84,7 +94,10 @@ export interface PatternLayoutStats {
   pieceCount: number;
   svg: SvgLayoutStats;
   plt: PltLayoutStats;
+  pltUnoptimized: PltLayoutStats;
   comparison: LayoutComparison;
+  optimizedBeds: BedVisualization[];
+  unoptimizedBeds: BedVisualization[];
 }
 
 /**
@@ -154,19 +167,42 @@ export class TailorFitService {
     });
     console.log('==========================================\n');
 
-    // Compute PLT and comparison stats
+    // Compute optimized PLT stats and visualizations
     const pltStats = this.computePltLayoutStats(beds);
     const comparison = this.buildLayoutComparison(svgStats, pltStats);
+    const optimizedBeds = this.buildBedVisualizations(beds);
+
+    // Compute unoptimized PLT stats (only when stats are needed for batch)
+    let pltUnoptimized: PltLayoutStats = { beds: [], aggregateLerAreaMm2: 0, aggregateLerRatio: 0, totalBeds: 0 };
+    let unoptimizedBeds: BedVisualization[] = [];
+    if (statsContext) {
+      const freshPieces: PatternPiece[] = pieces.map(p => ({
+        ...p,
+        points: [...p.originalPoints],
+        rotation: 0,
+      }));
+      const unoptimizedBedsResult = this.nestPiecesUnoptimized(
+        freshPieces,
+        TailorFitService.BED_WIDTH,
+        TailorFitService.BED_HEIGHT
+      );
+      pltUnoptimized = this.computePltLayoutStats(unoptimizedBedsResult);
+      unoptimizedBeds = this.buildBedVisualizations(unoptimizedBedsResult);
+    }
+
     const stats: PatternLayoutStats | null = statsContext ? {
-      patternKey:  statsContext.patternKey,
-      userId:      statsContext.userId,
-      userName:    statsContext.userName,
-      designId:    statsContext.designId,
-      designName:  statsContext.designName,
-      pieceCount:  pieces.length,
-      svg:         svgStats,
-      plt:         pltStats,
-      comparison
+      patternKey:      statsContext.patternKey,
+      userId:          statsContext.userId,
+      userName:        statsContext.userName,
+      designId:        statsContext.designId,
+      designName:      statsContext.designName,
+      pieceCount:      pieces.length,
+      svg:             svgStats,
+      plt:             pltStats,
+      pltUnoptimized,
+      comparison,
+      optimizedBeds,
+      unoptimizedBeds,
     } : null;
 
     // Generate output: single PLT file or ZIP archive with multiple PLT files
@@ -819,5 +855,135 @@ export class TailorFitService {
     commands.push('PU0,0;SP0;'); // Return pen to origin and deselect
     console.log(`[PLT] ✓ Generated ${commands.length} PLT commands\n`);
     return commands.join('\n');
+  }
+
+  /**
+   * Simple (unoptimized) nesting: column-by-column placement in original SVG order,
+   * no rotation and no sorting. Pieces are stacked top-to-bottom in a column;
+   * when a piece overflows the column vertically, a new column is started to the right.
+   * Only when the bed is full horizontally does a new bed begin.
+   * Used as a baseline to visualise the benefit of the optimized layout.
+   */
+  public nestPiecesUnoptimized(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
+    const beds: Bed[] = [];
+    let currentBedPieces: PatternPiece[] = [];
+
+    // Column state
+    let colX      = TailorFitService.MARGIN; // left edge of the current column
+    let colWidth  = 0;                       // widest piece placed in the current column
+    let currentY  = TailorFitService.MARGIN; // next Y position within the column
+
+    const finalizeBed = () => {
+      if (currentBedPieces.length === 0) return;
+
+      let maxUsedX = 0;
+      let maxUsedY = 0;
+      currentBedPieces.forEach(p => {
+        const farX = (p.x ?? 0) + p.width;
+        const farY = (p.y ?? 0) + p.height;
+        if (farX > maxUsedX) maxUsedX = farX;
+        if (farY > maxUsedY) maxUsedY = farY;
+      });
+
+      const safeX = Math.min(maxUsedX + TailorFitService.MARGIN, bedWidth);
+      const safeY = Math.min(maxUsedY + TailorFitService.MARGIN, bedHeight);
+
+      const rightArea: ReusableArea = {
+        x: safeX, y: 0,
+        width: Math.max(0, bedWidth - safeX), height: bedHeight,
+        area: Math.max(0, bedWidth - safeX) * bedHeight,
+        areaCm2: (Math.max(0, bedWidth - safeX) * bedHeight) / 100,
+      };
+      const bottomArea: ReusableArea = {
+        x: 0, y: safeY,
+        width: bedWidth, height: Math.max(0, bedHeight - safeY),
+        area: bedWidth * Math.max(0, bedHeight - safeY),
+        areaCm2: (bedWidth * Math.max(0, bedHeight - safeY)) / 100,
+      };
+      const bestReusable = rightArea.area >= bottomArea.area ? rightArea : bottomArea;
+
+      const usedArea = currentBedPieces.reduce((s, p) => s + p.width * p.height, 0);
+      const efficiency = (usedArea / (bedWidth * bedHeight)) * 100;
+
+      beds.push({
+        pieces: currentBedPieces,
+        efficiency,
+        width: bedWidth,
+        height: bedHeight,
+        reusableArea: bestReusable,
+        usedHeightMm: safeY,
+      });
+    };
+
+    const resetBed = () => {
+      currentBedPieces = [];
+      colX     = TailorFitService.MARGIN;
+      colWidth = 0;
+      currentY = TailorFitService.MARGIN;
+    };
+
+    for (const piece of pieces) {
+      // Normalize to (0,0) so width/height are stable
+      this.normalizePiece(piece);
+
+      // Skip pieces that are wider or taller than the whole bed
+      if (piece.width + TailorFitService.MARGIN * 2 > bedWidth ||
+          piece.height + TailorFitService.MARGIN * 2 > bedHeight) {
+        console.warn(`[UNOPT] Skipping oversized piece ${piece.id}: ${piece.width.toFixed(1)}×${piece.height.toFixed(1)}mm`);
+        continue;
+      }
+
+      // If piece overflows current column vertically, try to open a new column
+      if (currentY + piece.height + TailorFitService.MARGIN > bedHeight) {
+        const nextColX = colX + colWidth + TailorFitService.MARGIN;
+
+        // If the new column also overflows the bed horizontally, finalize bed and start fresh
+        if (nextColX + piece.width + TailorFitService.MARGIN > bedWidth) {
+          finalizeBed();
+          resetBed();
+        } else {
+          // Advance to next column on the same bed
+          colX     = nextColX;
+          colWidth = 0;
+          currentY = TailorFitService.MARGIN;
+        }
+      }
+
+      piece.x = colX;
+      piece.y = currentY;
+
+      // Track the widest piece in this column
+      if (piece.width > colWidth) colWidth = piece.width;
+
+      currentY += piece.height + TailorFitService.MARGIN;
+      currentBedPieces.push(piece);
+    }
+
+    finalizeBed();
+    return beds;
+  }
+
+  /**
+   * Extract piece positions from already-nested beds for visual rendering.
+   */
+  private buildBedVisualizations(beds: Bed[]): BedVisualization[] {
+    return beds.map((bed, idx) => {
+      const lerHeightMm = Math.max(0, TailorFitService.BED_HEIGHT - bed.usedHeightMm);
+      return {
+        bedIndex:    idx + 1,
+        widthMm:     bed.width,
+        heightMm:    bed.height,
+        usedHeightMm: bed.usedHeightMm,
+        lerHeightMm,
+        lerAreaMm2:  bed.width * lerHeightMm,
+        pieces: bed.pieces.map(p => ({
+          id:     p.id,
+          x:      p.x ?? 0,
+          y:      p.y ?? 0,
+          width:  p.width,
+          height: p.height,
+        })),
+      };
+    });
   }
 }

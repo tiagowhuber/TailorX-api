@@ -9,6 +9,7 @@ import {
 } from '../utils/freesewing';
 import { TailorFitService, PatternLayoutStats } from '../services/TailorFitService';
 import { generateLayoutReport } from '../utils/layoutReportGenerator';
+import { generateLerComparisonReport } from '../utils/lerComparisonGenerator';
 
 function toSlug(str: string): string {
   return str
@@ -220,6 +221,7 @@ export const batchGenerate = async (req: Request, res: Response) => {
     };
     zip.file(`${rootFolder}/layout_analysis.json`, JSON.stringify(layoutAnalysis, null, 2));
     zip.file(`${rootFolder}/layout_report.html`, generateLayoutReport(layoutAnalysis));
+    zip.file(`${rootFolder}/ler_comparison.html`, generateLerComparisonReport(layoutAnalysis));
 
     const buffer = await zip.generateAsync({ type: 'nodebuffer' });
 
