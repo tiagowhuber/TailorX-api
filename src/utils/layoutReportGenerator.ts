@@ -100,8 +100,7 @@ export function generateLayoutReport(analysis: LayoutAnalysis): string {
         <td>${p.userName}</td>
         <td>${p.designName}</td>
         <td>${p.pieceCount}</td>
-        <td>${p.svg.bboxWidthMm.toFixed(0)} × ${p.svg.bboxHeightMm.toFixed(0)}</td>
-        <td>${p.svg.normalizedHeightMm.toFixed(0)}</td>
+        <td>${p.pltUnoptimized.beds[0]?.usedHeightMm.toFixed(0) ?? '—'}</td>
         <td>${p.plt.beds[0]?.usedHeightMm.toFixed(0) ?? '—'}</td>
         <td style="color:${hColor};font-weight:600">${hMm} mm (${hPct}%)</td>
         <td>${lerM2} m² (${lerPct}%)</td>
@@ -210,12 +209,12 @@ export function generateLayoutReport(analysis: LayoutAnalysis): string {
     <div class="card green">
       <div class="label">Avg. Height Reduction</div>
       <div class="value">${avgHeightReduction.toFixed(1)}%</div>
-      <div class="sub">vs. SVG unoptimised layout</div>
+      <div class="sub">vs. unoptimised PLT</div>
     </div>
     <div class="card accent">
       <div class="label">Avg. Free Area Gained</div>
       <div class="value">${avgLerImprovement.toFixed(1)}%</div>
-      <div class="sub">of total bed area</div>
+      <div class="sub">vs. unoptimised PLT</div>
     </div>
     <div class="card">
       <div class="label">Total Patterns</div>
@@ -241,11 +240,11 @@ export function generateLayoutReport(analysis: LayoutAnalysis): string {
   <div class="section-title">Comparisons by Design</div>
   <div class="charts-grid">
     <div class="chart-card">
-      <h3>Bed Height Reduction (%) per User &amp; Design</h3>
+      <h3>Bed Height Reduction (%) per User &amp; Design — Optimised vs Unoptimised PLT</h3>
       <canvas id="chartHeight" height="280"></canvas>
     </div>
     <div class="chart-card">
-      <h3>Free Area (LER) Gained (% of bed) per User &amp; Design</h3>
+      <h3>Free Area (LER) Gained (% of bed) — Optimised vs Unoptimised PLT</h3>
       <canvas id="chartLer" height="280"></canvas>
     </div>
     <div class="chart-card wide">
@@ -263,9 +262,8 @@ export function generateLayoutReport(analysis: LayoutAnalysis): string {
           <th>User</th>
           <th>Design</th>
           <th>Pieces</th>
-          <th>SVG BBox (mm)</th>
-          <th>SVG Norm. Height (mm)</th>
-          <th>PLT Used Height (mm)</th>
+          <th>Unopt. Height (mm)</th>
+          <th>Opt. Height (mm)</th>
           <th>Height Reduction</th>
           <th>Free Area Gained</th>
           <th>Efficiency</th>

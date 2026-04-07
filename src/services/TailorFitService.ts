@@ -169,10 +169,9 @@ export class TailorFitService {
 
     // Compute optimized PLT stats and visualizations
     const pltStats = this.computePltLayoutStats(beds);
-    const comparison = this.buildLayoutComparison(svgStats, pltStats);
     const optimizedBeds = this.buildBedVisualizations(beds);
 
-    // Compute unoptimized PLT stats (only when stats are needed for batch)
+    // Compute unoptimized PLT stats (needed for fair comparison)
     let pltUnoptimized: PltLayoutStats = { beds: [], aggregateLerAreaMm2: 0, aggregateLerRatio: 0, totalBeds: 0 };
     let unoptimizedBeds: BedVisualization[] = [];
     if (statsContext) {
@@ -189,6 +188,9 @@ export class TailorFitService {
       pltUnoptimized = this.computePltLayoutStats(unoptimizedBedsResult);
       unoptimizedBeds = this.buildBedVisualizations(unoptimizedBedsResult);
     }
+
+    // Compare unoptimized PLT vs optimized PLT
+    const comparison = this.buildLayoutComparison(pltUnoptimized, pltStats);
 
     const stats: PatternLayoutStats | null = statsContext ? {
       patternKey:      statsContext.patternKey,
@@ -732,20 +734,24 @@ export class TailorFitService {
   }
 
   /**
-   * Build a human-readable comparison between SVG original and PLT optimised layouts.
-   * Comparison is always SVG vs PLT bed 1.
+   * Build a comparison between unoptimized PLT layout and optimized PLT layout.
+   * Comparison is always unoptimized bed 1 vs optimized bed 1.
    */
-  private buildLayoutComparison(svg: SvgLayoutStats, plt: PltLayoutStats): LayoutComparison {
-    const bed1 = plt.beds[0];
-    if (!bed1) {
-      return { heightReductionMm: 0, heightReductionPct: 0, lerImprovementMm2: 0, lerImprovementPct: 0, summary: 'No PLT beds available for comparison.' };
+  private buildLayoutComparison(unopt: PltLayoutStats, opt: PltLayoutStats): LayoutComparison {
+    const optBed1 = opt.beds[0];
+    if (!optBed1) {
+      return { heightReductionMm: 0, heightReductionPct: 0, lerImprovementMm2: 0, lerImprovementPct: 0, summary: 'No optimised PLT beds available for comparison.' };
     }
 
-    const heightReductionMm  = svg.normalizedHeightMm - bed1.usedHeightMm;
-    const heightReductionPct = svg.normalizedHeightMm > 0 ? (heightReductionMm / svg.normalizedHeightMm) * 100 : 0;
-    const lerImprovementMm2  = bed1.lerAreaMm2 - svg.lerAreaMm2;
-    const bedAreaMm2         = TailorFitService.BED_WIDTH * TailorFitService.BED_HEIGHT;
-    const lerImprovementPct  = bedAreaMm2 > 0 ? (lerImprovementMm2 / bedAreaMm2) * 100 : 0;
+    const unoptBed1 = unopt.beds[0];
+    const baseUsedHeight     = unoptBed1?.usedHeightMm ?? optBed1.usedHeightMm;
+    const heightReductionMm  = baseUsedHeight - optBed1.usedHeightMm;
+    const heightReductionPct = baseUsedHeight > 0 ? (heightReductionMm / baseUsedHeight) * 100 : 0;
+
+    const baseLerAreaMm2    = unoptBed1?.lerAreaMm2 ?? 0;
+    const lerImprovementMm2 = optBed1.lerAreaMm2 - baseLerAreaMm2;
+    const bedAreaMm2        = TailorFitService.BED_WIDTH * TailorFitService.BED_HEIGHT;
+    const lerImprovementPct = bedAreaMm2 > 0 ? (lerImprovementMm2 / bedAreaMm2) * 100 : 0;
 
     const direction = heightReductionMm >= 0 ? 'reduced' : 'increased';
     const absH      = Math.abs(heightReductionMm).toFixed(1);
@@ -755,7 +761,7 @@ export class TailorFitService {
     const absLerPct = Math.abs(lerImprovementPct).toFixed(1);
 
     const summary =
-      `PLT nesting ${direction} bed height by ${absH}mm (${absHPct}%) vs SVG layout. ` +
+      `Optimised PLT ${direction} bed height by ${absH}mm (${absHPct}%) vs unoptimised PLT. ` +
       `Free (LER) area ${lerDir} by ${absLer}m² (${absLerPct}%).`;
 
     return { heightReductionMm, heightReductionPct, lerImprovementMm2, lerImprovementPct, summary };
