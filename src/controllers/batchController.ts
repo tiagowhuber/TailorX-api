@@ -6,6 +6,7 @@ import {
   validateRequiredMeasurements,
   generateFreeSewingPattern,
   extractRequiredMeasurementKeys,
+  cleanMirroredSvg,
 } from '../utils/freesewing';
 import { TailorFitService, PatternLayoutStats } from '../services/TailorFitService';
 import { generateLayoutReport } from '../utils/layoutReportGenerator';
@@ -138,11 +139,11 @@ export const batchGenerate = async (req: Request, res: Response) => {
         let svg: string;
         try {
           const generated = await generateFreeSewingPattern({
-            patternType: design.freesewing_pattern!,
+            patternType: `${design.freesewing_pattern} mirrored`,
             measurements: freesewingMeasurements,
             settings,
           });
-          svg = generated.svg;
+          svg = cleanMirroredSvg(generated.svg, design.freesewing_pattern!);
         } catch (err: any) {
           results.push({
             userId: user.id,
