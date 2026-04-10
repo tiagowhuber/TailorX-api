@@ -606,6 +606,143 @@ export class TailorFitService {
   }
 
   /**
+   * Skyline packing algorithm. Tracks the "height profile" (skyline) across the bed width,
+   * placing each piece at the lowest available position that fits — including under the
+   * "shadows" of taller pieces. This eliminates the interior gaps that shelf packing leaves.
+   *
+   * Pieces must be pre-rotated, normalized, and sorted before calling this method.
+   */
+  private runSkylinePacking(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
+    interface SkylineNode { x: number; y: number; width: number; }
+
+    const beds: Bed[] = [];
+    let remainingPieces = [...pieces];
+
+    while (remainingPieces.length > 0) {
+      const currentBedPieces: PatternPiece[] = [];
+      const nextRemaining: PatternPiece[] = [];
+
+      // Flat skyline at the top margin
+      let skyline: SkylineNode[] = [{ x: TailorFitService.MARGIN, y: TailorFitService.MARGIN, width: bedWidth - TailorFitService.MARGIN }];
+
+      /** Find the lowest Y position where a piece of size pW×pH can be placed. */
+      const findBestPlacement = (pW: number, pH: number): { x: number; y: number } | null => {
+        let bestY = Infinity, bestX = Infinity;
+
+        for (let i = 0; i < skyline.length; i++) {
+          const startX = skyline[i]!.x;
+          if (startX + pW > bedWidth) continue;
+
+          // Compute max Y across all nodes the piece would span
+          let maxY = 0, coveredW = 0, j = i;
+          while (j < skyline.length && coveredW < pW) {
+            maxY = Math.max(maxY, skyline[j]!.y);
+            coveredW += skyline[j]!.width;
+            j++;
+          }
+          if (coveredW < pW) continue;       // not enough width coverage
+          if (maxY + pH > bedHeight) continue; // piece would overflow vertically
+
+          if (maxY < bestY || (maxY === bestY && startX < bestX)) {
+            bestY = maxY;
+            bestX = startX;
+          }
+        }
+
+        return bestY < Infinity ? { x: bestX, y: bestY } : null;
+      };
+
+      /** Raise the skyline in [px, px+pW] to py+pH, split/merge nodes as needed. */
+      const updateSkyline = (px: number, py: number, pW: number, pH: number) => {
+        const pieceEnd = px + pW;
+        const newY     = py + pH;
+        const next: SkylineNode[] = [];
+
+        for (const node of skyline) {
+          const ne = node.x + node.width;
+          if (ne <= px || node.x >= pieceEnd) {
+            next.push({ ...node });
+          } else {
+            if (node.x < px)      next.push({ x: node.x,   y: node.y, width: px - node.x });
+            if (ne   > pieceEnd)  next.push({ x: pieceEnd, y: node.y, width: ne - pieceEnd });
+          }
+        }
+        next.push({ x: px, y: newY, width: pW });
+        next.sort((a, b) => a.x - b.x);
+
+        // Merge adjacent nodes at the same height
+        skyline = [];
+        for (const n of next) {
+          const last = skyline[skyline.length - 1];
+          if (last && last.y === n.y && last.x + last.width === n.x) {
+            last.width += n.width;
+          } else {
+            skyline.push({ ...n });
+          }
+        }
+      };
+
+      for (const piece of remainingPieces) {
+        const pW = piece.width  + TailorFitService.MARGIN;
+        const pH = piece.height + TailorFitService.MARGIN;
+        const placement = findBestPlacement(pW, pH);
+        if (placement) {
+          piece.x = placement.x;
+          piece.y = placement.y;
+          updateSkyline(placement.x, placement.y, pW, pH);
+          currentBedPieces.push(piece);
+          console.log(`  ✓ [Skyline] ${piece.id}: ${piece.width.toFixed(1)}×${piece.height.toFixed(1)}mm at (${piece.x.toFixed(1)}, ${piece.y.toFixed(1)})`);
+        } else {
+          nextRemaining.push(piece);
+          console.log(`  ✗ [Skyline] ${piece.id}: doesn't fit on this bed`);
+        }
+      }
+
+      let maxUsedX = 0, maxUsedY = 0;
+      currentBedPieces.forEach(p => {
+        const farX = (p.x ?? 0) + p.width;
+        const farY = (p.y ?? 0) + p.height;
+        if (farX > maxUsedX) maxUsedX = farX;
+        if (farY > maxUsedY) maxUsedY = farY;
+      });
+      const safeX = Math.min(maxUsedX + TailorFitService.MARGIN, bedWidth);
+      const safeY = Math.min(maxUsedY + TailorFitService.MARGIN, bedHeight);
+
+      const rightArea: ReusableArea = {
+        x: safeX, y: 0,
+        width: Math.max(0, bedWidth - safeX), height: bedHeight,
+        area: Math.max(0, bedWidth - safeX) * bedHeight,
+        areaCm2: (Math.max(0, bedWidth - safeX) * bedHeight) / 100,
+      };
+      const bottomArea: ReusableArea = {
+        x: 0, y: safeY,
+        width: bedWidth, height: Math.max(0, bedHeight - safeY),
+        area: bedWidth * Math.max(0, bedHeight - safeY),
+        areaCm2: (bedWidth * Math.max(0, bedHeight - safeY)) / 100,
+      };
+
+      const usedArea = currentBedPieces.reduce((s, p) => s + p.width * p.height, 0);
+      beds.push({
+        pieces: currentBedPieces,
+        efficiency: (usedArea / (bedWidth * bedHeight)) * 100,
+        width: bedWidth,
+        height: bedHeight,
+        reusableArea: rightArea.area >= bottomArea.area ? rightArea : bottomArea,
+        usedHeightMm: safeY,
+      });
+
+      remainingPieces = nextRemaining;
+      if (currentBedPieces.length === 0 && remainingPieces.length > 0) {
+        console.warn(`⚠️  Piece ${remainingPieces[0]?.id} too large for bed — skipping.`);
+        remainingPieces.shift();
+      }
+    }
+
+    return beds;
+  }
+
+
+  /**
    * Compute total bounding-box area across all beds.
    * Union LER = BED_AREA − bboxArea, so minimising this maximises Union LER.
    */
@@ -622,8 +759,8 @@ export class TailorFitService {
   }
 
   /**
-   * Meta-optimizer: tries three FFDH sort strategies (height, width, area) plus
-   * Sequential column packing, then returns the layout with the fewest beds;
+   * Meta-optimizer: tries FFDH (height/width/area sort), Skyline (height/area sort),
+   * and Sequential column packing, then returns the layout with the fewest beds;
    * ties broken by smallest total bounding-box area (= highest Union LER).
    */
   public nestPieces(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
@@ -632,16 +769,23 @@ export class TailorFitService {
     type Result = { name: string; beds: Bed[]; bedCount: number; bboxArea: number };
     const results: Result[] = [];
 
-    const ffdhStrategies: { name: string; sortFn: (a: PatternPiece, b: PatternPiece) => number }[] = [
-      { name: 'FFDH-height', sortFn: (a, b) => b.height - a.height },
-      { name: 'FFDH-width',  sortFn: (a, b) => b.width  - a.width  },
-      { name: 'FFDH-area',   sortFn: (a, b) => (b.width * b.height) - (a.width * a.height) },
+    const sortFns: { name: string; sortFn: (a: PatternPiece, b: PatternPiece) => number }[] = [
+      { name: 'height', sortFn: (a, b) => b.height - a.height },
+      { name: 'width',  sortFn: (a, b) => b.width  - a.width  },
+      { name: 'area',   sortFn: (a, b) => (b.width * b.height) - (a.width * a.height) },
     ];
 
-    for (const s of ffdhStrategies) {
+    for (const s of sortFns) {
       const prepared = this.preparePieces(pieces, s.sortFn, true);
       const beds = this.runShelfPacking(prepared, bedWidth, bedHeight);
-      results.push({ name: s.name, beds, bedCount: beds.length, bboxArea: this.totalBboxArea(beds, bedWidth) });
+      results.push({ name: `FFDH-${s.name}`, beds, bedCount: beds.length, bboxArea: this.totalBboxArea(beds, bedWidth) });
+    }
+
+    // Skyline with height and area sort (fills gaps below taller pieces)
+    for (const s of [sortFns[0]!, sortFns[2]!]) {
+      const prepared = this.preparePieces(pieces, s.sortFn, true);
+      const beds = this.runSkylinePacking(prepared, bedWidth, bedHeight);
+      results.push({ name: `Sky-${s.name}`, beds, bedCount: beds.length, bboxArea: this.totalBboxArea(beds, bedWidth) });
     }
 
     // Sequential column packing (original order, no rotation)
