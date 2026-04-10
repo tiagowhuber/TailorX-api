@@ -16,10 +16,16 @@ function renderBedSvg(bed: BedVisualization): string {
   const svgH  = Math.round(bed.heightMm * scale);
   const svgW  = SVG_RENDER_WIDTH;
 
-  const lerY     = Math.round(bed.usedHeightMm * scale);
-  const lerH     = Math.round(bed.lerHeightMm  * scale);
+  const lerY      = Math.round(bed.usedHeightMm * scale);
+  const lerH      = Math.round(bed.lerHeightMm  * scale);
   const lerAreaM2 = (bed.lerAreaMm2 / 1_000_000).toFixed(4);
   const lerPct    = ((bed.lerAreaMm2 / (bed.widthMm * bed.heightMm)) * 100).toFixed(1);
+
+  // LER #2 — right strip
+  const ler2X     = Math.round(bed.usedWidthMm  * scale);
+  const ler2W     = Math.round(bed.ler2WidthMm  * scale);
+  const ler2AreaM2 = (bed.ler2AreaMm2 / 1_000_000).toFixed(4);
+  const ler2Pct   = ((bed.ler2AreaMm2 / (bed.widthMm * bed.heightMm)) * 100).toFixed(1);
 
   const pieceRects = bed.pieces.map(p => {
     const px = Math.round(p.x      * scale);
@@ -30,15 +36,32 @@ function renderBedSvg(bed: BedVisualization): string {
               fill="#94a3b8" stroke="#475569" stroke-width="0.5" rx="1"/>`;
   }).join('\n    ');
 
+  // LER #1 — bottom strip (green)
   const lerRect = lerH > 0
     ? `<rect x="0" y="${lerY}" width="${svgW}" height="${lerH}"
           fill="rgba(34,197,94,0.30)" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="6,3"/>`
     : '';
 
   const lerLabel = lerH > 8
-    ? `<text x="${svgW / 2}" y="${lerY + lerH / 2 + 5}"
+    ? `<text x="${ler2W > 0 ? (svgW - ler2W) / 2 : svgW / 2}" y="${lerY + lerH / 2 + 5}"
           text-anchor="middle" font-size="12" fill="#22c55e" font-weight="600">
         LER ${lerAreaM2} m² (${lerPct}%)
+      </text>`
+    : '';
+
+  // LER #2 — right strip (purple)
+  const ler2Rect = ler2W > 0
+    ? `<rect x="${ler2X}" y="0" width="${ler2W}" height="${svgH}"
+          fill="rgba(139,92,246,0.25)" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="6,3"/>`
+    : '';
+
+  const ler2LabelCx = ler2X + ler2W / 2;
+  const ler2LabelCy = lerH > 0 ? lerY / 2 : svgH / 2;
+  const ler2Label = ler2W > 16
+    ? `<text x="${ler2LabelCx}" y="${ler2LabelCy}"
+          text-anchor="middle" font-size="11" fill="#8b5cf6" font-weight="600"
+          transform="rotate(-90,${ler2LabelCx},${ler2LabelCy})">
+        LER2 ${ler2AreaM2}m² (${ler2Pct}%)
       </text>`
     : '';
 
@@ -48,9 +71,12 @@ function renderBedSvg(bed: BedVisualization): string {
      style="display:block;border:1px solid #334155;border-radius:4px;background:#0f172a;">
   <!-- Pieces -->
   ${pieceRects}
-  <!-- LER zone -->
+  <!-- LER #1 zone (bottom strip) -->
   ${lerRect}
   ${lerLabel}
+  <!-- LER #2 zone (right strip) -->
+  ${ler2Rect}
+  ${ler2Label}
   <!-- Used height marker -->
   <line x1="0" y1="${lerY}" x2="${svgW}" y2="${lerY}"
         stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,2"/>
@@ -72,29 +98,40 @@ function renderPatternSection(pattern: PatternLayoutStats): string {
     const optSvg   = opt   ? renderBedSvg(opt)   : '<p class="no-bed">No bed</p>';
     const unoptSvg = unopt ? renderBedSvg(unopt)  : '<p class="no-bed">No bed</p>';
 
-    const optLerPct   = opt   ? ((opt.lerAreaMm2   / (opt.widthMm   * opt.heightMm))   * 100).toFixed(1) : '—';
-    const unoptLerPct = unopt ? ((unopt.lerAreaMm2 / (unopt.widthMm * unopt.heightMm)) * 100).toFixed(1) : '—';
+    const optLerPct    = opt   ? ((opt.lerAreaMm2   / (opt.widthMm   * opt.heightMm))   * 100).toFixed(1) : '—';
+    const unoptLerPct  = unopt ? ((unopt.lerAreaMm2 / (unopt.widthMm * unopt.heightMm)) * 100).toFixed(1) : '—';
+    const optLer2Pct   = opt   ? ((opt.ler2AreaMm2  / (opt.widthMm   * opt.heightMm))   * 100).toFixed(1) : '—';
+    const unoptLer2Pct = unopt ? ((unopt.ler2AreaMm2/ (unopt.widthMm * unopt.heightMm)) * 100).toFixed(1) : '—';
+
+    const optLabel = opt
+      ? `LER: ${(opt.lerAreaMm2 / 1_000_000).toFixed(4)} m² (${optLerPct}%) | LER2: ${(opt.ler2AreaMm2 / 1_000_000).toFixed(4)} m² (${optLer2Pct}%) | Union: ${(opt.lerUnionAreaMm2 / 1_000_000).toFixed(4)} m²`
+      : '—';
+    const unoptLabel = unopt
+      ? `LER: ${(unopt.lerAreaMm2 / 1_000_000).toFixed(4)} m² (${unoptLerPct}%) | LER2: ${(unopt.ler2AreaMm2 / 1_000_000).toFixed(4)} m² (${unoptLer2Pct}%) | Union: ${(unopt.lerUnionAreaMm2 / 1_000_000).toFixed(4)} m²`
+      : '—';
 
     return `
     <div class="bed-row">
       <div class="bed-col">
-        <p class="bed-label">Bed ${i + 1} &mdash; LER: ${opt   ? (opt.lerAreaMm2   / 1_000_000).toFixed(4) : '—'} m² (${optLerPct}%)</p>
+        <p class="bed-label">Bed ${i + 1} &mdash; ${optLabel}</p>
         ${optSvg}
       </div>
       <div class="bed-col">
-        <p class="bed-label">Bed ${i + 1} &mdash; LER: ${unopt ? (unopt.lerAreaMm2 / 1_000_000).toFixed(4) : '—'} m² (${unoptLerPct}%)</p>
+        <p class="bed-label">Bed ${i + 1} &mdash; ${unoptLabel}</p>
         ${unoptSvg}
       </div>
     </div>`;
   }).join('\n');
 
   // Aggregate improvement numbers (comparing unoptimized vs optimized)
-  const totalOptLer   = optBeds.reduce((s, b) => s + b.lerAreaMm2, 0);
-  const totalUnoptLer = unoptBeds.reduce((s, b) => s + b.lerAreaMm2, 0);
-  const improvementMm2 = totalOptLer - totalUnoptLer;
-  const baseUnopt     = totalUnoptLer > 0 ? totalUnoptLer : 1;
-  const improvementPct = ((improvementMm2 / baseUnopt) * 100).toFixed(1);
-  const improvSign    = improvementMm2 >= 0 ? '+' : '';
+  const totalOptLer        = optBeds.reduce((s, b) => s + b.lerAreaMm2, 0);
+  const totalUnoptLer      = unoptBeds.reduce((s, b) => s + b.lerAreaMm2, 0);
+  const totalOptUnion      = optBeds.reduce((s, b) => s + b.lerUnionAreaMm2, 0);
+  const totalUnoptUnion    = unoptBeds.reduce((s, b) => s + b.lerUnionAreaMm2, 0);
+  const improvementMm2     = totalOptUnion - totalUnoptUnion;
+  const baseUnopt          = totalUnoptUnion > 0 ? totalUnoptUnion : 1;
+  const improvementPct     = ((improvementMm2 / baseUnopt) * 100).toFixed(1);
+  const improvSign         = improvementMm2 >= 0 ? '+' : '';
 
   const bedCountDiff = unoptBeds.length - optBeds.length;
   const bedCountNote = bedCountDiff > 0
@@ -119,15 +156,15 @@ function renderPatternSection(pattern: PatternLayoutStats): string {
 
     <div class="summary-row">
       <div class="summary-stat">
-        <span class="stat-label">LER After</span>
-        <span class="stat-value">${(totalOptLer / 1_000_000).toFixed(4)} m²</span>
+        <span class="stat-label">Union LER After</span>
+        <span class="stat-value">${(totalOptUnion / 1_000_000).toFixed(4)} m²</span>
       </div>
       <div class="summary-stat">
-        <span class="stat-label">LER Before</span>
-        <span class="stat-value">${(totalUnoptLer / 1_000_000).toFixed(4)} m²</span>
+        <span class="stat-label">Union LER Before</span>
+        <span class="stat-value">${(totalUnoptUnion / 1_000_000).toFixed(4)} m²</span>
       </div>
       <div class="summary-stat">
-        <span class="stat-label">LER Change</span>
+        <span class="stat-label">Union LER Change</span>
         <span class="stat-value ${improvementMm2 >= 0 ? 'positive' : 'negative'}">${improvSign}${(improvementMm2 / 1_000_000).toFixed(4)} m² (${improvSign}${improvementPct}%)</span>
       </div>
       <div class="summary-stat">

@@ -76,12 +76,16 @@ interface LayoutComparison {
 }
 
 export interface BedVisualization {
-  bedIndex: number;       // 1-based
+  bedIndex: number;           // 1-based
   widthMm: number;
   heightMm: number;
-  usedHeightMm: number;   // safeY — where pieces end
-  lerHeightMm: number;   // BED_HEIGHT - usedHeightMm
-  lerAreaMm2: number;
+  usedHeightMm: number;       // safeY — where pieces end vertically
+  usedWidthMm: number;        // safeX — where pieces end horizontally
+  lerHeightMm: number;        // BED_HEIGHT - usedHeightMm
+  lerAreaMm2: number;         // LER #1: full-width bottom strip
+  ler2WidthMm: number;        // BED_WIDTH - usedWidthMm
+  ler2AreaMm2: number;        // LER #2: full-height right strip
+  lerUnionAreaMm2: number;    // LER1 + LER2 - overlap (bottom-right corner)
   pieces: { id: string; x: number; y: number; width: number; height: number }[];
 }
 
@@ -975,13 +979,32 @@ export class TailorFitService {
   private buildBedVisualizations(beds: Bed[]): BedVisualization[] {
     return beds.map((bed, idx) => {
       const lerHeightMm = Math.max(0, TailorFitService.BED_HEIGHT - bed.usedHeightMm);
+
+      // Recompute safeX from piece positions (same formula as nestPieces)
+      let maxUsedX = 0;
+      bed.pieces.forEach(p => {
+        const farX = (p.x ?? 0) + p.width;
+        if (farX > maxUsedX) maxUsedX = farX;
+      });
+      const usedWidthMm = Math.min(maxUsedX + TailorFitService.MARGIN, bed.width);
+      const ler2WidthMm = Math.max(0, bed.width - usedWidthMm);
+      const ler2AreaMm2 = ler2WidthMm * bed.height;
+
+      // Union = LER1 + LER2 - overlap (the bottom-right corner counted twice)
+      const overlapArea = ler2WidthMm * lerHeightMm;
+      const lerUnionAreaMm2 = (bed.width * lerHeightMm) + ler2AreaMm2 - overlapArea;
+
       return {
-        bedIndex:    idx + 1,
-        widthMm:     bed.width,
-        heightMm:    bed.height,
-        usedHeightMm: bed.usedHeightMm,
+        bedIndex:         idx + 1,
+        widthMm:          bed.width,
+        heightMm:         bed.height,
+        usedHeightMm:     bed.usedHeightMm,
+        usedWidthMm,
         lerHeightMm,
-        lerAreaMm2:  bed.width * lerHeightMm,
+        lerAreaMm2:       bed.width * lerHeightMm,
+        ler2WidthMm,
+        ler2AreaMm2,
+        lerUnionAreaMm2,
         pieces: bed.pieces.map(p => ({
           id:     p.id,
           x:      p.x ?? 0,
