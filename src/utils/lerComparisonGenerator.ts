@@ -148,7 +148,7 @@ function renderPatternSection(pattern: PatternLayoutStats): string {
     </div>
 
     <div class="comparison-headers">
-      <div class="col-header after-header">After Optimization (FFDH)</div>
+      <div class="col-header after-header">After Optimization (OPTIMIZED)</div>
       <div class="col-header before-header">Before Optimization (sequential)</div>
     </div>
 

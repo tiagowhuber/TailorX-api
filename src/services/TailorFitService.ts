@@ -467,125 +467,86 @@ export class TailorFitService {
   }
 
   /**
-   * Nest pattern pieces onto one or more cutting beds using bin-packing algorithm.
-   * 
-   * Algorithm:
-   * 1. Pre-rotate pieces so longest dimension is horizontal
-   * 2. Sort by area (largest first) for better packing
-   * 3. Use greedy bin-packing (potpack) to fit pieces onto beds
-   * 4. Create new bed when pieces don't fit on current bed
-   * 
-   * @param pieces - Array of pattern pieces to nest
-   * @param bedWidth - Width of cutting bed in mm
-   * @param bedHeight - Height of cutting bed in mm
-   * @returns Array of beds, each containing fitted pieces and efficiency metrics
+   * Deep-copy pieces from their originalPoints, optionally pre-rotate so the longest
+   * side is horizontal, normalize to (0,0), then sort using the provided comparator.
    */
-  public nestPieces(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
-    console.log(`[NEST] Starting nesting process...`);
-    console.log(`[NEST] Bed dimensions: ${bedWidth}mm × ${bedHeight}mm (${(bedWidth * bedHeight / 1000000).toFixed(2)} m²)`);
-    console.log(`[NEST] Margin between pieces: ${TailorFitService.MARGIN}mm\n`);
-    
-    // Pre-rotate pieces to align longest side with X axis (width)
-    console.log('[NEST] Pre-processing pieces (rotate & normalize)...');
-    pieces.forEach(p => {
-      const bbox = this.calculateBBox(p.points);
-      if (bbox.height > bbox.width) {
-        console.log(`  └─ Rotating ${p.id} 90° (was ${bbox.width.toFixed(1)}×${bbox.height.toFixed(1)}mm)`);
-        this.rotatePiece(p, 90);
-      }
-      // Normalize position to 0,0 relative to bbox
-      this.normalizePiece(p);
-    });
+  private preparePieces(
+    pieces: PatternPiece[],
+    sortFn: ((a: PatternPiece, b: PatternPiece) => number) | null,
+    preRotate: boolean
+  ): PatternPiece[] {
+    const copied: PatternPiece[] = pieces.map(p => ({
+      ...p,
+      points: [...p.originalPoints],
+      rotation: 0,
+    }));
 
-    // Sort by height descending (best for shelf packing FFDH)
-    // Minimizing total height is our goal if we fill width first
-    console.log('[NEST] Sorting pieces by height (tallest first)...');
-    const sortedPieces = [...pieces].sort((a, b) => b.height - a.height);
-    
+    if (preRotate) {
+      copied.forEach(p => {
+        const bbox = this.calculateBBox(p.points);
+        if (bbox.height > bbox.width) {
+          this.rotatePiece(p, 90);
+        }
+        this.normalizePiece(p);
+      });
+    } else {
+      copied.forEach(p => this.normalizePiece(p));
+    }
+
+    if (sortFn) {
+      copied.sort(sortFn);
+    }
+
+    return copied;
+  }
+
+  /**
+   * FFDH shelf-packing algorithm.
+   * Expects pieces to be already pre-rotated, normalized, and sorted.
+   */
+  private runShelfPacking(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
+    interface Shelf {
+      y: number;
+      height: number;
+      remainingWidth: number;
+    }
+
     const beds: Bed[] = [];
-    let remainingPieces = sortedPieces;
+    let remainingPieces = [...pieces];
 
     while (remainingPieces.length > 0) {
-      console.log(`\n[NEST] --- Creating Bed ${beds.length + 1} ---`);
-      console.log(`[NEST] Attempting to fit ${remainingPieces.length} remaining piece(s)...`);
-      
       const currentBedPieces: PatternPiece[] = [];
       const nextRemaining: PatternPiece[] = [];
-      
-      // Shelf Packing Algorithm (First-Fit Decreasing Height)
-      // Shelves fill along BED_WIDTH (X-axis) and stack along BED_HEIGHT (Y-axis)
-      interface Shelf {
-        y: number;
-        height: number;
-        remainingWidth: number;
-      }
-      
       const shelves: Shelf[] = [];
       let currentY = TailorFitService.MARGIN;
-      
+
       for (const piece of remainingPieces) {
-        // Find the first shelf where the piece fits
         let placed = false;
-        
-        // Piece dimensions including margin
         const pWidth = piece.width + TailorFitService.MARGIN;
         const pHeight = piece.height + TailorFitService.MARGIN;
 
-        // Try existing shelves
         for (const shelf of shelves) {
-           // We can place it if width fits.
-           // Since we sorted by height, the new piece height is <= shelf height (determined by first piece in shelf).
-           // So vertical fit is guaranteed within the shelf.
-           if (pWidth <= shelf.remainingWidth) {
-               piece.x = TailorFitService.BED_WIDTH - shelf.remainingWidth + TailorFitService.MARGIN; // Apply margin offset? 
-               // Wait: bed width = 2500.
-               // remainingWidth starts at 2500.
-               // x = 2500 - 2500 = 0? (If Margin is outside).
-               // Let's refine coordinate logic:
-               // remainingWidth starts at BedWidth - Margin (if there's a margin at x=0).
-               // Yes, we want margin at x=0.
-               
-               // Logic above needs correction:
-               // Initial remainingWidth = BedWidth - Margin.
-               // X position = BedWidth - remainingWidth. (This puts it at Margin).
-               // Correct.
-               
-               // But shelf.remainingWidth logic must be consistent.
-               // Initial shelf logic needs to be correct.
-               
-               piece.x = (TailorFitService.BED_WIDTH - shelf.remainingWidth); 
-               // For first piece: 2500 - (2500 - 10) = 10. Correct.
-               
-               piece.y = shelf.y;
-               
-               shelf.remainingWidth -= pWidth;
-               placed = true;
-               break;
-           }
+          if (pWidth <= shelf.remainingWidth) {
+            piece.x = bedWidth - shelf.remainingWidth;
+            piece.y = shelf.y;
+            shelf.remainingWidth -= pWidth;
+            placed = true;
+            break;
+          }
         }
-        
-        // If not placed, try to open a new shelf
+
         if (!placed) {
-            // Check if we have vertical space
-            // Need margin at bottom? usually yes.
-            if (currentY + pHeight <= TailorFitService.BED_HEIGHT) {
-                const newShelf: Shelf = {
-                    y: currentY,
-                    height: pHeight,
-                    remainingWidth: TailorFitService.BED_WIDTH - TailorFitService.MARGIN - pWidth 
-                    // Initial free space: Width - Margin(Start) - PieceWidth - Margin(End)? 
-                    // PieceWidth includes Margin(Right).
-                    // So we subtract pWidth.
-                    // X = MARGIN.
-                };
-                
-                piece.x = TailorFitService.MARGIN;
-                piece.y = currentY;
-                
-                shelves.push(newShelf);
-                currentY += pHeight;
-                placed = true;
-            }
+          if (currentY + pHeight <= bedHeight) {
+            shelves.push({
+              y: currentY,
+              height: pHeight,
+              remainingWidth: bedWidth - TailorFitService.MARGIN - pWidth,
+            });
+            piece.x = TailorFitService.MARGIN;
+            piece.y = currentY;
+            currentY += pHeight;
+            placed = true;
+          }
         }
 
         if (placed) {
@@ -597,89 +558,109 @@ export class TailorFitService {
         }
       }
 
-      // Calculate bed utilization efficiency
-      const usedArea = currentBedPieces.reduce((sum, p) => sum + (p.width * p.height), 0);
-      const totalArea = bedWidth * bedHeight;
-      const wastedArea = totalArea - usedArea;
-      const efficiency = (usedArea / totalArea) * 100;
+      const usedArea = currentBedPieces.reduce((sum, p) => sum + p.width * p.height, 0);
+      const efficiency = (usedArea / (bedWidth * bedHeight)) * 100;
 
-      // Calculate Reusable Area (Biggest Rectangular Area)
-      // We calculate the bounding box of all fitted pieces
-      let maxUsedX = 0;
-      let maxUsedY = 0;
-      
+      let maxUsedX = 0, maxUsedY = 0;
       currentBedPieces.forEach(p => {
-        // Pieces already have x, y set relative to bed origin (0,0)
-        // Add width/height to get the far edge
-        const farX = (p.x || 0) + p.width;
-        const farY = (p.y || 0) + p.height;
+        const farX = (p.x ?? 0) + p.width;
+        const farY = (p.y ?? 0) + p.height;
         if (farX > maxUsedX) maxUsedX = farX;
         if (farY > maxUsedY) maxUsedY = farY;
       });
 
-      // Add appropriate margins to define the "safe" cut line
-      // We add MARGIN to ensure we don't cut into the pieces' clearance zone
       const safeX = Math.min(maxUsedX + TailorFitService.MARGIN, bedWidth);
       const safeY = Math.min(maxUsedY + TailorFitService.MARGIN, bedHeight);
 
-      // Strategy: Check two main potential rectangles
-      // 1. Right side (Full height, starting after used X)
       const rightArea: ReusableArea = {
-        x: safeX,
-        y: 0,
-        width: Math.max(0, bedWidth - safeX),
-        height: bedHeight,
+        x: safeX, y: 0,
+        width: Math.max(0, bedWidth - safeX), height: bedHeight,
         area: Math.max(0, bedWidth - safeX) * bedHeight,
-        areaCm2: (Math.max(0, bedWidth - safeX) * bedHeight) / 100
+        areaCm2: (Math.max(0, bedWidth - safeX) * bedHeight) / 100,
       };
-
-      // 2. Bottom side (Full width, starting after used Y)
       const bottomArea: ReusableArea = {
-        x: 0,
-        y: safeY,
-        width: bedWidth,
-        height: Math.max(0, bedHeight - safeY),
+        x: 0, y: safeY,
+        width: bedWidth, height: Math.max(0, bedHeight - safeY),
         area: bedWidth * Math.max(0, bedHeight - safeY),
-        areaCm2: (bedWidth * Math.max(0, bedHeight - safeY)) / 100
+        areaCm2: (bedWidth * Math.max(0, bedHeight - safeY)) / 100,
       };
-
-      // Select the larger one
-      const bestReusable = rightArea.area >= bottomArea.area ? rightArea : bottomArea;
-      
-      console.log(`\n[NEST] Bed ${beds.length + 1} Complete:`);
-      console.log(`  └─ Pieces fitted: ${currentBedPieces.length}`);
-      console.log(`  └─ Area used: ${(usedArea / 1000000).toFixed(4)} m² (${(usedArea / 100).toFixed(2)} cm²)`);
-      console.log(`  └─ Area wasted: ${(wastedArea / 1000000).toFixed(4)} m² (${(wastedArea / 100).toFixed(2)} cm²)`);
-      console.log(`  └─ Efficiency: ${efficiency.toFixed(2)}%`);
-      console.log(`  └─ Reusable Area: ${bestReusable.width.toFixed(1)}×${bestReusable.height.toFixed(1)}mm (${bestReusable.areaCm2.toFixed(2)} cm²)`);
-      console.log(`  └─ Remaining pieces: ${nextRemaining.length}`);
 
       beds.push({
         pieces: currentBedPieces,
         efficiency,
         width: bedWidth,
         height: bedHeight,
-        reusableArea: bestReusable,
-        usedHeightMm: safeY
+        reusableArea: rightArea.area >= bottomArea.area ? rightArea : bottomArea,
+        usedHeightMm: safeY,
       });
 
       remainingPieces = nextRemaining;
-      
-      // Safety: Prevent infinite loop if a piece is too large for the bed
+
       if (currentBedPieces.length === 0 && remainingPieces.length > 0) {
-        const oversizedPiece = remainingPieces[0];
-        if (oversizedPiece) {
-          console.warn(`\n⚠️  WARNING: ${oversizedPiece.id} is too large for bed!`);
-          console.warn(`   Piece size: ${oversizedPiece.width.toFixed(1)}×${oversizedPiece.height.toFixed(1)}mm`);
-          console.warn(`   Bed size: ${bedWidth}×${bedHeight}mm`);
-          console.warn(`   This piece will be SKIPPED.\n`);
-          remainingPieces.shift(); // Remove it to avoid infinite loop
-        }
+        console.warn(`⚠️  Piece ${remainingPieces[0]?.id} too large for bed — skipping.`);
+        remainingPieces.shift();
       }
     }
 
-    console.log(`\n[NEST] ✓ Nesting complete: ${beds.length} bed(s) created\n`);
     return beds;
+  }
+
+  /**
+   * Compute total bounding-box area across all beds.
+   * Union LER = BED_AREA − bboxArea, so minimising this maximises Union LER.
+   */
+  private totalBboxArea(beds: Bed[], bedWidth: number): number {
+    return beds.reduce((sum, bed) => {
+      let maxX = 0;
+      bed.pieces.forEach(p => {
+        const farX = (p.x ?? 0) + p.width;
+        if (farX > maxX) maxX = farX;
+      });
+      const usedWidth = Math.min(maxX + TailorFitService.MARGIN, bedWidth);
+      return sum + usedWidth * bed.usedHeightMm;
+    }, 0);
+  }
+
+  /**
+   * Meta-optimizer: tries three FFDH sort strategies (height, width, area) plus
+   * Sequential column packing, then returns the layout with the fewest beds;
+   * ties broken by smallest total bounding-box area (= highest Union LER).
+   */
+  public nestPieces(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
+    console.log(`[NEST] Bed dimensions: ${bedWidth}mm × ${bedHeight}mm — trying multiple strategies...\n`);
+
+    type Result = { name: string; beds: Bed[]; bedCount: number; bboxArea: number };
+    const results: Result[] = [];
+
+    const ffdhStrategies: { name: string; sortFn: (a: PatternPiece, b: PatternPiece) => number }[] = [
+      { name: 'FFDH-height', sortFn: (a, b) => b.height - a.height },
+      { name: 'FFDH-width',  sortFn: (a, b) => b.width  - a.width  },
+      { name: 'FFDH-area',   sortFn: (a, b) => (b.width * b.height) - (a.width * a.height) },
+    ];
+
+    for (const s of ffdhStrategies) {
+      const prepared = this.preparePieces(pieces, s.sortFn, true);
+      const beds = this.runShelfPacking(prepared, bedWidth, bedHeight);
+      results.push({ name: s.name, beds, bedCount: beds.length, bboxArea: this.totalBboxArea(beds, bedWidth) });
+    }
+
+    // Sequential column packing (original order, no rotation)
+    const seqPrepared = this.preparePieces(pieces, null, false);
+    const seqBeds = this.runColumnPacking(seqPrepared, bedWidth, bedHeight);
+    results.push({ name: 'Sequential', beds: seqBeds, bedCount: seqBeds.length, bboxArea: this.totalBboxArea(seqBeds, bedWidth) });
+
+    // Select winner: fewest beds first, then smallest bboxArea
+    results.sort((a, b) => a.bedCount - b.bedCount || a.bboxArea - b.bboxArea);
+    const winner = results[0]!;
+
+    console.log('[NEST] Strategy results:');
+    results.forEach(r => {
+      const marker = r.name === winner.name ? '★' : ' ';
+      console.log(`  ${marker} ${r.name.padEnd(14)} ${r.bedCount} bed(s)  bbox=${(r.bboxArea / 1e6).toFixed(4)} m²`);
+    });
+    console.log(`\n[NEST] ✓ Winner: ${winner.name} — ${winner.bedCount} bed(s)\n`);
+
+    return winner.beds;
   }
 
   // ---- Layout Analysis Helpers ----
@@ -874,20 +855,23 @@ export class TailorFitService {
    * Only when the bed is full horizontally does a new bed begin.
    * Used as a baseline to visualise the benefit of the optimized layout.
    */
-  public nestPiecesUnoptimized(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
+  /**
+   * Column-packing algorithm: stacks pieces top-to-bottom in columns, adding new columns
+   * when vertical space is exhausted. Pieces must already be normalized to (0,0).
+   * Used internally by nestPieces (as one candidate strategy) and nestPiecesUnoptimized.
+   */
+  private runColumnPacking(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
     const beds: Bed[] = [];
     let currentBedPieces: PatternPiece[] = [];
 
-    // Column state
-    let colX      = TailorFitService.MARGIN; // left edge of the current column
-    let colWidth  = 0;                       // widest piece placed in the current column
-    let currentY  = TailorFitService.MARGIN; // next Y position within the column
+    let colX      = TailorFitService.MARGIN;
+    let colWidth  = 0;
+    let currentY  = TailorFitService.MARGIN;
 
     const finalizeBed = () => {
       if (currentBedPieces.length === 0) return;
 
-      let maxUsedX = 0;
-      let maxUsedY = 0;
+      let maxUsedX = 0, maxUsedY = 0;
       currentBedPieces.forEach(p => {
         const farX = (p.x ?? 0) + p.width;
         const farY = (p.y ?? 0) + p.height;
@@ -910,17 +894,14 @@ export class TailorFitService {
         area: bedWidth * Math.max(0, bedHeight - safeY),
         areaCm2: (bedWidth * Math.max(0, bedHeight - safeY)) / 100,
       };
-      const bestReusable = rightArea.area >= bottomArea.area ? rightArea : bottomArea;
 
       const usedArea = currentBedPieces.reduce((s, p) => s + p.width * p.height, 0);
-      const efficiency = (usedArea / (bedWidth * bedHeight)) * 100;
-
       beds.push({
         pieces: currentBedPieces,
-        efficiency,
+        efficiency: (usedArea / (bedWidth * bedHeight)) * 100,
         width: bedWidth,
         height: bedHeight,
-        reusableArea: bestReusable,
+        reusableArea: rightArea.area >= bottomArea.area ? rightArea : bottomArea,
         usedHeightMm: safeY,
       });
     };
@@ -933,26 +914,20 @@ export class TailorFitService {
     };
 
     for (const piece of pieces) {
-      // Normalize to (0,0) so width/height are stable
       this.normalizePiece(piece);
 
-      // Skip pieces that are wider or taller than the whole bed
       if (piece.width + TailorFitService.MARGIN * 2 > bedWidth ||
           piece.height + TailorFitService.MARGIN * 2 > bedHeight) {
-        console.warn(`[UNOPT] Skipping oversized piece ${piece.id}: ${piece.width.toFixed(1)}×${piece.height.toFixed(1)}mm`);
+        console.warn(`[COL] Skipping oversized piece ${piece.id}: ${piece.width.toFixed(1)}×${piece.height.toFixed(1)}mm`);
         continue;
       }
 
-      // If piece overflows current column vertically, try to open a new column
       if (currentY + piece.height + TailorFitService.MARGIN > bedHeight) {
         const nextColX = colX + colWidth + TailorFitService.MARGIN;
-
-        // If the new column also overflows the bed horizontally, finalize bed and start fresh
         if (nextColX + piece.width + TailorFitService.MARGIN > bedWidth) {
           finalizeBed();
           resetBed();
         } else {
-          // Advance to next column on the same bed
           colX     = nextColX;
           colWidth = 0;
           currentY = TailorFitService.MARGIN;
@@ -961,16 +936,21 @@ export class TailorFitService {
 
       piece.x = colX;
       piece.y = currentY;
-
-      // Track the widest piece in this column
       if (piece.width > colWidth) colWidth = piece.width;
-
       currentY += piece.height + TailorFitService.MARGIN;
       currentBedPieces.push(piece);
     }
 
     finalizeBed();
     return beds;
+  }
+
+  /**
+   * Unoptimized sequential layout — always uses column packing in original piece order
+   * with no rotation. Kept as a stable baseline for the comparison report.
+   */
+  public nestPiecesUnoptimized(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
+    return this.runColumnPacking(pieces, bedWidth, bedHeight);
   }
 
   /**
