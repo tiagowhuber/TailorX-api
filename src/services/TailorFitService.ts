@@ -778,6 +778,7 @@ export class TailorFitService {
     for (const s of sortFns) {
       const prepared = this.preparePieces(pieces, s.sortFn, true);
       const beds = this.runShelfPacking(prepared, bedWidth, bedHeight);
+      beds.forEach(b => this.compactBed(b));
       results.push({ name: `FFDH-${s.name}`, beds, bedCount: beds.length, bboxArea: this.totalBboxArea(beds, bedWidth) });
     }
 
@@ -785,12 +786,22 @@ export class TailorFitService {
     for (const s of [sortFns[0]!, sortFns[2]!]) {
       const prepared = this.preparePieces(pieces, s.sortFn, true);
       const beds = this.runSkylinePacking(prepared, bedWidth, bedHeight);
+      beds.forEach(b => this.compactBed(b));
       results.push({ name: `Sky-${s.name}`, beds, bedCount: beds.length, bboxArea: this.totalBboxArea(beds, bedWidth) });
+    }
+
+    // Row packing with height, width and area sort
+    for (const s of sortFns) {
+      const prepared = this.preparePieces(pieces, s.sortFn, true);
+      const beds = this.runRowPacking(prepared, bedWidth, bedHeight);
+      beds.forEach(b => this.compactBed(b));
+      results.push({ name: `Row-${s.name}`, beds, bedCount: beds.length, bboxArea: this.totalBboxArea(beds, bedWidth) });
     }
 
     // Sequential column packing (original order, no rotation)
     const seqPrepared = this.preparePieces(pieces, null, false);
     const seqBeds = this.runColumnPacking(seqPrepared, bedWidth, bedHeight);
+    seqBeds.forEach(b => this.compactBed(b));
     results.push({ name: 'Sequential', beds: seqBeds, bedCount: seqBeds.length, bboxArea: this.totalBboxArea(seqBeds, bedWidth) });
 
     // Select winner: fewest beds first, then smallest bboxArea
@@ -1090,11 +1101,251 @@ export class TailorFitService {
   }
 
   /**
+   * Row-packing algorithm: places pieces left-to-right in rows, opening a new row below
+   * when horizontal space is exhausted. analagous to runColumnPacking but transposed.
+   * Pieces must already be normalized to (0,0).
+   * Used internally by nestPieces as one candidate strategy.
+   */
+  private runRowPacking(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
+    const beds: Bed[] = [];
+    let currentBedPieces: PatternPiece[] = [];
+
+    let rowY      = TailorFitService.MARGIN;
+    let rowHeight = 0;
+    let currentX  = TailorFitService.MARGIN;
+
+    const finalizeBed = () => {
+      if (currentBedPieces.length === 0) return;
+
+      let maxUsedX = 0, maxUsedY = 0;
+      currentBedPieces.forEach(p => {
+        const farX = (p.x ?? 0) + p.width;
+        const farY = (p.y ?? 0) + p.height;
+        if (farX > maxUsedX) maxUsedX = farX;
+        if (farY > maxUsedY) maxUsedY = farY;
+      });
+
+      const safeX = Math.min(maxUsedX + TailorFitService.MARGIN, bedWidth);
+      const safeY = Math.min(maxUsedY + TailorFitService.MARGIN, bedHeight);
+
+      const rightArea: ReusableArea = {
+        x: safeX, y: 0,
+        width: Math.max(0, bedWidth - safeX), height: bedHeight,
+        area: Math.max(0, bedWidth - safeX) * bedHeight,
+        areaCm2: (Math.max(0, bedWidth - safeX) * bedHeight) / 100,
+      };
+      const bottomArea: ReusableArea = {
+        x: 0, y: safeY,
+        width: bedWidth, height: Math.max(0, bedHeight - safeY),
+        area: bedWidth * Math.max(0, bedHeight - safeY),
+        areaCm2: (bedWidth * Math.max(0, bedHeight - safeY)) / 100,
+      };
+
+      const usedArea = currentBedPieces.reduce((s, p) => s + p.width * p.height, 0);
+      beds.push({
+        pieces: currentBedPieces,
+        efficiency: (usedArea / (bedWidth * bedHeight)) * 100,
+        width: bedWidth,
+        height: bedHeight,
+        reusableArea: rightArea.area >= bottomArea.area ? rightArea : bottomArea,
+        usedHeightMm: safeY,
+      });
+    };
+
+    const resetBed = () => {
+      currentBedPieces = [];
+      rowY      = TailorFitService.MARGIN;
+      rowHeight = 0;
+      currentX  = TailorFitService.MARGIN;
+    };
+
+    for (const piece of pieces) {
+      this.normalizePiece(piece);
+
+      if (piece.width + TailorFitService.MARGIN * 2 > bedWidth ||
+          piece.height + TailorFitService.MARGIN * 2 > bedHeight) {
+        console.warn(`[ROW] Skipping oversized piece ${piece.id}: ${piece.width.toFixed(1)}×${piece.height.toFixed(1)}mm`);
+        continue;
+      }
+
+      if (currentX + piece.width + TailorFitService.MARGIN > bedWidth) {
+        // Overflow horizontally — start a new row below
+        const nextRowY = rowY + rowHeight + TailorFitService.MARGIN;
+        if (nextRowY + piece.height + TailorFitService.MARGIN > bedHeight) {
+          // Overflow vertically too — start a new bed
+          finalizeBed();
+          resetBed();
+        } else {
+          rowY      = nextRowY;
+          rowHeight = 0;
+          currentX  = TailorFitService.MARGIN;
+        }
+      }
+
+      piece.x = currentX;
+      piece.y = rowY;
+      if (piece.height > rowHeight) rowHeight = piece.height;
+      currentX += piece.width + TailorFitService.MARGIN;
+      currentBedPieces.push(piece);
+    }
+
+    finalizeBed();
+    return beds;
+  }
+
+  /**
    * Unoptimized sequential layout — always uses column packing in original piece order
    * with no rotation. Kept as a stable baseline for the comparison report.
    */
   public nestPiecesUnoptimized(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
     return this.runColumnPacking(pieces, bedWidth, bedHeight);
+  }
+
+  /**
+   * Post-placement compaction pass.
+   *
+   * After any packing algorithm has laid out pieces on a bed, this pass repeatedly
+   * tries to relocate pieces from the boundary inward so the bounding box
+   * (usedWidth × usedHeight) shrinks and the Union LER grows.
+   *
+   * For each piece P (sorted furthest to the right first), it tests two candidate
+   * positions relative to every other piece Q already on the bed:
+   *   1. On top of Q  — (Q.x, Q.y + Q.height + MARGIN)
+   *   2. Right of Q   — (Q.x + Q.width + MARGIN, Q.y)
+   *
+   * A candidate is accepted when:
+   *   - It keeps P fully inside [0, bedWidth] × [0, bedHeight]
+   *   - It does not overlap any other piece (AABB with MARGIN padding)
+   *   - It strictly reduces usedWidth × usedHeight
+   *
+   * Iterates until a full pass over all pieces produces no improvement.
+   * Complexity: O(n² × iterations), negligible for typical 4–20 pieces per bed.
+   *
+   * After compaction, bed.usedHeightMm, bed.reusableArea, and bed.efficiency
+   * are updated to reflect the new layout.
+   */
+  private compactBed(bed: Bed): void {
+    const M = TailorFitService.MARGIN;
+    const W = bed.width;
+    const H = bed.height;
+
+    /** AABB overlap test — pieces are solid rectangles, separation = M on each side. */
+    const overlaps = (ax: number, ay: number, aw: number, ah: number,
+                      bx: number, by: number, bw: number, bh: number): boolean => {
+      return ax < bx + bw + M && ax + aw + M > bx &&
+             ay < by + bh + M && ay + ah + M > by;
+    };
+
+    /** Bounding-box product of the current layout (used for improvement checks). */
+    const bboxProduct = (): number => {
+      let maxX = 0, maxY = 0;
+      for (const p of bed.pieces) {
+        const fx = (p.x ?? 0) + p.width;
+        const fy = (p.y ?? 0) + p.height;
+        if (fx > maxX) maxX = fx;
+        if (fy > maxY) maxY = fy;
+      }
+      return Math.min(maxX + M, W) * Math.min(maxY + M, H);
+    };
+
+    let improved = true;
+    while (improved) {
+      improved = false;
+
+      // Work on pieces sorted by rightmost edge descending — boundary pieces first
+      const sorted = [...bed.pieces].sort(
+        (a, b) => ((b.x ?? 0) + b.width) - ((a.x ?? 0) + a.width)
+      );
+
+      for (const piece of sorted) {
+        const currentBbox = bboxProduct();
+        let bestBbox = currentBbox;
+        let bestX = piece.x!;
+        let bestY = piece.y!;
+
+        for (const q of bed.pieces) {
+          if (q === piece) continue;
+
+          const candidates: [number, number][] = [
+            // On top of Q
+            [q.x!, (q.y ?? 0) + q.height + M],
+            // Right of Q
+            [(q.x ?? 0) + q.width + M, q.y!],
+          ];
+
+          for (const [cx, cy] of candidates) {
+            // Must stay inside the bed
+            if (cx < M || cy < M) continue;
+            if (cx + piece.width + M > W) continue;
+            if (cy + piece.height + M > H) continue;
+
+            // Must not overlap any other piece
+            let collision = false;
+            for (const other of bed.pieces) {
+              if (other === piece) continue;
+              if (overlaps(cx, cy, piece.width, piece.height,
+                           other.x!, other.y!, other.width, other.height)) {
+                collision = true;
+                break;
+              }
+            }
+            if (collision) continue;
+
+            // Check if this reduces the bounding-box product
+            const origX = piece.x!;
+            const origY = piece.y!;
+            piece.x = cx;
+            piece.y = cy;
+            const newBbox = bboxProduct();
+            piece.x = origX;
+            piece.y = origY;
+
+            if (newBbox < bestBbox) {
+              bestBbox = newBbox;
+              bestX = cx;
+              bestY = cy;
+            }
+          }
+        }
+
+        if (bestBbox < currentBbox) {
+          console.log(`[COMPACT] Moved ${piece.id} from (${piece.x?.toFixed(1)}, ${piece.y?.toFixed(1)}) → (${bestX.toFixed(1)}, ${bestY.toFixed(1)})  bbox ${(currentBbox/1e6).toFixed(4)}→${(bestBbox/1e6).toFixed(4)} m²`);
+          piece.x = bestX;
+          piece.y = bestY;
+          improved = true;
+        }
+      }
+    }
+
+    // Recompute bed metadata after compaction
+    let maxUsedX = 0, maxUsedY = 0;
+    for (const p of bed.pieces) {
+      const farX = (p.x ?? 0) + p.width;
+      const farY = (p.y ?? 0) + p.height;
+      if (farX > maxUsedX) maxUsedX = farX;
+      if (farY > maxUsedY) maxUsedY = farY;
+    }
+    const safeX = Math.min(maxUsedX + M, W);
+    const safeY = Math.min(maxUsedY + M, H);
+
+    bed.usedHeightMm = safeY;
+
+    const rightArea: ReusableArea = {
+      x: safeX, y: 0,
+      width: Math.max(0, W - safeX), height: H,
+      area: Math.max(0, W - safeX) * H,
+      areaCm2: (Math.max(0, W - safeX) * H) / 100,
+    };
+    const bottomArea: ReusableArea = {
+      x: 0, y: safeY,
+      width: W, height: Math.max(0, H - safeY),
+      area: W * Math.max(0, H - safeY),
+      areaCm2: (W * Math.max(0, H - safeY)) / 100,
+    };
+    bed.reusableArea = rightArea.area >= bottomArea.area ? rightArea : bottomArea;
+
+    const usedArea = bed.pieces.reduce((s, p) => s + p.width * p.height, 0);
+    bed.efficiency = (usedArea / (W * H)) * 100;
   }
 
   /**
