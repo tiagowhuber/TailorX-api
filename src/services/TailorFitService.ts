@@ -1194,11 +1194,127 @@ export class TailorFitService {
   }
 
   /**
-   * Unoptimized sequential layout — always uses column packing in original piece order
-   * with no rotation. Kept as a stable baseline for the comparison report.
+   * Random placement algorithm used as an unoptimized baseline.
+   *
+   * Pieces are placed at random (x, y) positions within the bed, with no sorting and no
+   * rotation. Up to MAX_ATTEMPTS random positions are tried per piece; if none is
+   * collision-free the piece spills to the next bed. A simple seeded PRNG (mulberry32)
+   * keeps the output deterministic for the same input so comparison stats are stable.
+   */
+  private runRandomPacking(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
+    const MAX_ATTEMPTS = 500;
+
+    // Mulberry32 — fast, good-enough seeded PRNG
+    let seed = pieces.length * 2654435761;
+    const rand = (): number => {
+      seed = (seed + 0x6d2b79f5) >>> 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) >>> 0;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+
+    const M = TailorFitService.MARGIN;
+    const overlaps = (ax: number, ay: number, aw: number, ah: number,
+                      bx: number, by: number, bw: number, bh: number): boolean =>
+      ax < bx + bw + M && ax + aw + M > bx &&
+      ay < by + bh + M && ay + ah + M > by;
+
+    const beds: Bed[] = [];
+    let remaining = pieces.map(p => ({ ...p, points: [...p.originalPoints], rotation: 0 }));
+    remaining.forEach(p => this.normalizePiece(p));
+
+    while (remaining.length > 0) {
+      const placed: PatternPiece[] = [];
+      const nextRemaining: PatternPiece[] = [];
+
+      for (const piece of remaining) {
+        if (piece.width + M * 2 > bedWidth || piece.height + M * 2 > bedHeight) {
+          console.warn(`[RAND] Skipping oversized piece ${piece.id}: ${piece.width.toFixed(1)}×${piece.height.toFixed(1)}mm`);
+          continue;
+        }
+
+        const maxX = bedWidth  - piece.width  - M;
+        const maxY = bedHeight - piece.height - M;
+        let found = false;
+
+        for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+          const cx = M + rand() * (maxX - M);
+          const cy = M + rand() * (maxY - M);
+
+          let collision = false;
+          for (const q of placed) {
+            if (overlaps(cx, cy, piece.width, piece.height, q.x!, q.y!, q.width, q.height)) {
+              collision = true;
+              break;
+            }
+          }
+
+          if (!collision) {
+            piece.x = cx;
+            piece.y = cy;
+            placed.push(piece);
+            found = true;
+            console.log(`  ✓ [Rand] ${piece.id}: ${piece.width.toFixed(1)}×${piece.height.toFixed(1)}mm at (${cx.toFixed(1)}, ${cy.toFixed(1)})`);
+            break;
+          }
+        }
+
+        if (!found) {
+          nextRemaining.push(piece);
+          console.log(`  ✗ [Rand] ${piece.id}: no collision-free position found on this bed`);
+        }
+      }
+
+      let maxUsedX = 0, maxUsedY = 0;
+      placed.forEach(p => {
+        const farX = (p.x ?? 0) + p.width;
+        const farY = (p.y ?? 0) + p.height;
+        if (farX > maxUsedX) maxUsedX = farX;
+        if (farY > maxUsedY) maxUsedY = farY;
+      });
+      const safeX = Math.min(maxUsedX + M, bedWidth);
+      const safeY = Math.min(maxUsedY + M, bedHeight);
+
+      const rightArea: ReusableArea = {
+        x: safeX, y: 0,
+        width: Math.max(0, bedWidth - safeX), height: bedHeight,
+        area: Math.max(0, bedWidth - safeX) * bedHeight,
+        areaCm2: (Math.max(0, bedWidth - safeX) * bedHeight) / 100,
+      };
+      const bottomArea: ReusableArea = {
+        x: 0, y: safeY,
+        width: bedWidth, height: Math.max(0, bedHeight - safeY),
+        area: bedWidth * Math.max(0, bedHeight - safeY),
+        areaCm2: (bedWidth * Math.max(0, bedHeight - safeY)) / 100,
+      };
+
+      const usedArea = placed.reduce((s, p) => s + p.width * p.height, 0);
+      beds.push({
+        pieces: placed,
+        efficiency: (usedArea / (bedWidth * bedHeight)) * 100,
+        width: bedWidth,
+        height: bedHeight,
+        reusableArea: rightArea.area >= bottomArea.area ? rightArea : bottomArea,
+        usedHeightMm: safeY,
+      });
+
+      remaining = nextRemaining;
+      if (placed.length === 0 && remaining.length > 0) {
+        console.warn(`⚠️  [Rand] Piece ${remaining[0]?.id} could not be placed — skipping.`);
+        remaining.shift();
+      }
+    }
+
+    return beds;
+  }
+
+  /**
+   * Unoptimized baseline layout — random placement with no rotation or sorting.
+   * Produces a scattered, inefficient layout so the comparison with the optimized
+   * version is visually and numerically dramatic.
    */
   public nestPiecesUnoptimized(pieces: PatternPiece[], bedWidth: number, bedHeight: number): Bed[] {
-    return this.runColumnPacking(pieces, bedWidth, bedHeight);
+    return this.runRandomPacking(pieces, bedWidth, bedHeight);
   }
 
   /**
