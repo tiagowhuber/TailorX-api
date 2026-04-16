@@ -5,12 +5,6 @@
  * and dynamic pattern generation for different FreeSewing patterns.
  */
 
-// Use require for FreeSewing packages to avoid TypeScript module resolution issues
-const Brian = require('@freesewing/brian').Brian;
-const Diana = require('@freesewing/diana').Diana;
-const Sven = require('@freesewing/sven').Sven;
-const theme = require('@freesewing/plugin-theme').pluginTheme;
-
 // Import model types
 import type UserMeasurement from '../models/UserMeasurement';
 import type DesignMeasurement from '../models/DesignMeasurement';

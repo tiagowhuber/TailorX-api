@@ -106,6 +106,29 @@ CREATE INDEX idx_patterns_user ON patterns(user_id);
 CREATE INDEX idx_patterns_design ON patterns(design_id);
 CREATE INDEX idx_patterns_status ON patterns(status);
 
+-- Discount Codes (must be defined before orders due to FK dependency)
+CREATE TABLE discount_codes (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    discount_type VARCHAR(20) CHECK (discount_type IN ('percentage', 'fixed_amount')),
+    value NUMERIC(10, 2) NOT NULL,
+    max_discount_amount NUMERIC(10, 2),
+    starts_at TIMESTAMP,
+    expires_at TIMESTAMP,
+    max_total_uses INTEGER,
+    current_total_uses INTEGER DEFAULT 0,
+    max_unique_users INTEGER,
+    max_uses_per_user INTEGER,
+    applies_to_design_id INTEGER REFERENCES designs(id),
+    target_design_ids INTEGER[],
+    is_free_shipping BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_discount_codes_code ON discount_codes(code);
+
 -- Orders
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
@@ -165,10 +188,6 @@ CREATE TABLE ordered_patterns (
 CREATE INDEX idx_ordered_patterns_order ON ordered_patterns(order_id);
 CREATE INDEX idx_ordered_patterns_pattern ON ordered_patterns(pattern_id);
 
--- Trigger to update updated_at timestamp for ordered_patterns
-CREATE TRIGGER update_ordered_patterns_updated_at BEFORE UPDATE ON ordered_patterns
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 -- Order Status History (for tracking)
 CREATE TABLE order_status_history (
     id SERIAL PRIMARY KEY,
@@ -180,7 +199,7 @@ CREATE TABLE order_status_history (
 
 CREATE INDEX idx_order_status_history_order ON order_status_history(order_id);
 
--- Trigger to update updated_at timestamp
+-- Trigger function (must be defined before triggers)
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -205,6 +224,12 @@ CREATE TRIGGER update_patterns_updated_at BEFORE UPDATE ON patterns
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_ordered_patterns_updated_at BEFORE UPDATE ON ordered_patterns
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_discount_codes_updated_at BEFORE UPDATE ON discount_codes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 INSERT INTO measurement_types (name, description, freesewing_key) VALUES
@@ -282,30 +307,7 @@ SELECT 1, id, true
 FROM measurement_types
 WHERE freesewing_key IN ('biceps', 'chest', 'hips', 'hpsToBust', 'hpsToWaistBack', 'neck', 'shoulderSlope', 'shoulderToShoulder', 'waistToArmpit', 'waistToHips');
 
--- 12. DISCOUNT CODES
-CREATE TABLE discount_codes (
-    id SERIAL PRIMARY KEY,
-    code VARCHAR(50) UNIQUE NOT NULL,
-    discount_type VARCHAR(20) CHECK (discount_type IN ('percentage', 'fixed_amount')),
-    value NUMERIC(10, 2) NOT NULL,
-    max_discount_amount NUMERIC(10, 2),
-    starts_at TIMESTAMP,
-    expires_at TIMESTAMP,
-    max_total_uses INTEGER,
-    current_total_uses INTEGER DEFAULT 0,
-    max_unique_users INTEGER,
-    max_uses_per_user INTEGER,
-    applies_to_design_id INTEGER REFERENCES designs(id),
-    target_design_ids INTEGER[], 
-    is_free_shipping BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_discount_codes_code ON discount_codes(code);
-
--- 12.1 USER HAS DISCOUNT CODES (Wallet)
+-- User Discount Code Wallet
 CREATE TABLE user_has_discount_codes (
     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
     discount_code_id INTEGER REFERENCES discount_codes(id) ON DELETE CASCADE,
@@ -313,7 +315,7 @@ CREATE TABLE user_has_discount_codes (
     PRIMARY KEY (user_id, discount_code_id)
 );
 
--- 12.2 USER DISCOUNT CODE REDEMPTIONS
+-- User Discount Code Redemptions
 CREATE TABLE user_discount_code_redemptions (
     id SERIAL PRIMARY KEY,
     discount_code_id INTEGER REFERENCES discount_codes(id) ON DELETE CASCADE,
