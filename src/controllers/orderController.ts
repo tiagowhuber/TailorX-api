@@ -12,7 +12,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
     if (user.role !== 'admin') {
         whereClause.user_id = user.id;
     } else {
-        // Admins can filter by userId if provided
+        // Admins can filter by userId if provided 
         if (userId) whereClause.user_id = userId;
     }
 
