@@ -38,7 +38,7 @@ const MEASUREMENT_MAPPING: Record<string, string> = {
 
 export const generateMeasurements = async (req: Request, res: Response) => {
   try {
-    const { height_cm } = req.body;
+    const { height_cm, gender } = req.body;
     const userId = (req as any).user?.id; // Assuming auth middleware populates user
 
     if (!userId) {
@@ -51,9 +51,16 @@ export const generateMeasurements = async (req: Request, res: Response) => {
     const armImage = files['arm_image']?.[0];
 
     if (!frontImage || !sideImage || !height_cm) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Missing required fields: front_image, side_image, height_cm' 
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: front_image, side_image, height_cm'
+      });
+    }
+
+    if (!gender || !['male', 'female'].includes(String(gender).toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or missing gender (must be "male" or "female")'
       });
     }
 
@@ -65,6 +72,7 @@ export const generateMeasurements = async (req: Request, res: Response) => {
       formData.append('arm_image', new Blob([armImage.buffer as any], { type: armImage.mimetype }), 'arm.jpg');
     }
     formData.append('height_cm', height_cm.toString());
+    formData.append('gender', String(gender).toLowerCase());
 
     // Call TailorVision API
     const tailorVisionUrl = process.env.TAILORVISION_URL || 'http://localhost:8000';
