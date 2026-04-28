@@ -40,6 +40,7 @@ CREATE TABLE measurement_types (
     description TEXT,
     freesewing_key VARCHAR(100) NULL, -- optional: maps to FreeSewing measurement names
     guide_image_url VARCHAR(500) NULL, -- optional: link to a guide image for this measurement
+    unit VARCHAR(8) NOT NULL DEFAULT 'cm', -- display unit: 'cm' for lengths, '°' for angles
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -232,64 +233,64 @@ CREATE TRIGGER update_ordered_patterns_updated_at BEFORE UPDATE ON ordered_patte
 CREATE TRIGGER update_discount_codes_updated_at BEFORE UPDATE ON discount_codes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-INSERT INTO measurement_types (name, description, freesewing_key) VALUES
+INSERT INTO measurement_types (name, description, freesewing_key, unit) VALUES
     -- A
-    ('Circunferencia de tobillo', 'Circunferencia alrededor del tobillo.', 'ankle'),
+    ('Circunferencia de tobillo', 'Circunferencia alrededor del tobillo.', 'ankle', 'cm'),
 
     -- B
-    ('Circunferencia de bíceps', 'Circunferencia del bíceps en su punto más ancho.', 'biceps'),
-    ('Busto frontal', 'Medida horizontal del busto en la parte frontal.', 'bustFront'),
-    ('Punto de busto a bajo busto', 'Distancia vertical desde el punto de busto hasta el bajo busto.', 'bustPointToUnderbust'),
-    ('Extensión de busto', 'Medida horizontal entre puntos de busto.', 'bustSpan'),
+    ('Circunferencia de bíceps', 'Circunferencia del bíceps en su punto más ancho.', 'biceps', 'cm'),
+    ('Busto frontal', 'Medida horizontal del busto en la parte frontal.', 'bustFront', 'cm'),
+    ('Punto de busto a bajo busto', 'Distancia vertical desde el punto de busto hasta el bajo busto.', 'bustPointToUnderbust', 'cm'),
+    ('Extensión de busto', 'Medida horizontal entre puntos de busto.', 'bustSpan', 'cm'),
 
     -- C
-    ('Circunferencia de pecho', 'Circunferencia en la parte más estrecha del torso.', 'chest'),
-    ('Costura cruzada', 'Medida de costura cruzada en la espalda.', 'crossSeam'),
-    ('Costura cruzada frontal', 'Medida de costura cruzada en el frente.', 'crossSeamFront'),
-    ('Profundidad de entrepierna', 'Distancia vertical desde la cintura hasta la entrepierna sentado.', 'crotchDepth'),
+    ('Circunferencia de pecho', 'Circunferencia en la parte más estrecha del torso.', 'chest', 'cm'),
+    ('Costura cruzada', 'Medida de costura cruzada en la espalda.', 'crossSeam', 'cm'),
+    ('Costura cruzada frontal', 'Medida de costura cruzada en el frente.', 'crossSeamFront', 'cm'),
+    ('Profundidad de entrepierna', 'Distancia vertical desde la cintura hasta la entrepierna sentado.', 'crotchDepth', 'cm'),
 
     -- H
-    ('Circunferencia de talón', 'Circunferencia alrededor del talón del pie.', 'heel'),
-    ('Circunferencia de cabeza', 'Circunferencia alrededor de la cabeza.', 'head'),
-    ('Busto alto', 'Circunferencia en la parte alta del busto (sobre el pecho).', 'highBust'),
-    ('Busto alto frontal', 'Medida frontal del busto alto.', 'highBustFront'),
-    ('Circunferencia de caderas', 'Circunferencia en la parte más ancha de las caderas.', 'hips'),
-    ('HPS a busto', 'Distancia desde punto alto del hombro hasta punto de busto.', 'hpsToBust'),
-    ('HPS a cintura trasera', 'Distancia desde punto alto del hombro hasta cintura en la espalda.', 'hpsToWaistBack'),
-    ('HPS a cintura frontal', 'Distancia desde punto alto del hombro hasta cintura en el frente.', 'hpsToWaistFront'),
+    ('Circunferencia de talón', 'Circunferencia alrededor del talón del pie.', 'heel', 'cm'),
+    ('Circunferencia de cabeza', 'Circunferencia alrededor de la cabeza.', 'head', 'cm'),
+    ('Busto alto', 'Circunferencia en la parte alta del busto (sobre el pecho).', 'highBust', 'cm'),
+    ('Busto alto frontal', 'Medida frontal del busto alto.', 'highBustFront', 'cm'),
+    ('Circunferencia de caderas', 'Circunferencia en la parte más ancha de las caderas.', 'hips', 'cm'),
+    ('HPS a busto', 'Distancia desde punto alto del hombro hasta punto de busto.', 'hpsToBust', 'cm'),
+    ('HPS a cintura trasera', 'Distancia desde punto alto del hombro hasta cintura en la espalda.', 'hpsToWaistBack', 'cm'),
+    ('HPS a cintura frontal', 'Distancia desde punto alto del hombro hasta cintura en el frente.', 'hpsToWaistFront', 'cm'),
 
     -- I
-    ('Entrepierna', 'Longitud desde la entrepierna hasta el tobillo por la parte interna de la pierna.', 'inseam'),
+    ('Entrepierna', 'Longitud desde la entrepierna hasta el tobillo por la parte interna de la pierna.', 'inseam', 'cm'),
 
     -- K
-    ('Circunferencia de rodilla', 'Circunferencia alrededor de la rodilla.', 'knee'),
+    ('Circunferencia de rodilla', 'Circunferencia alrededor de la rodilla.', 'knee', 'cm'),
 
     -- N
-    ('Circunferencia de cuello', 'Circunferencia alrededor del cuello en la base.', 'neck'),
+    ('Circunferencia de cuello', 'Circunferencia alrededor del cuello en la base.', 'neck', 'cm'),
 
     -- S
-    ('Circunferencia de asiento', 'Circunferencia alrededor de la parte más ancha de los glúteos.', 'seat'),
-    ('Profundidad de asiento', 'Medida posterior desde cintura hasta línea de asiento.', 'seatBack'),
-    ('Inclinación de hombro', 'Ángulo de inclinación descendente del hombro.', 'shoulderSlope'),
-    ('Hombro a codo', 'Distancia desde el punto del hombro hasta el codo.', 'shoulderToElbow'),
-    ('Hombro a hombro', 'Distancia horizontal entre los puntos de los hombros por la espalda.', 'shoulderToShoulder'),
-    ('Hombro a muñeca', 'Distancia desde el punto del hombro hasta la muñeca.', 'shoulderToWrist'),
+    ('Circunferencia de asiento', 'Circunferencia alrededor de la parte más ancha de los glúteos.', 'seat', 'cm'),
+    ('Profundidad de asiento', 'Medida posterior desde cintura hasta línea de asiento.', 'seatBack', 'cm'),
+    ('Inclinación de hombro', 'Ángulo de inclinación descendente del hombro.', 'shoulderSlope', '°'),
+    ('Hombro a codo', 'Distancia desde el punto del hombro hasta el codo.', 'shoulderToElbow', 'cm'),
+    ('Hombro a hombro', 'Distancia horizontal entre los puntos de los hombros por la espalda.', 'shoulderToShoulder', 'cm'),
+    ('Hombro a muñeca', 'Distancia desde el punto del hombro hasta la muñeca.', 'shoulderToWrist', 'cm'),
 
     -- U
-    ('Bajo busto', 'Circunferencia justo debajo del busto.', 'underbust'),
-    ('Circunferencia de muslo superior', 'Circunferencia en la parte más ancha del muslo superior.', 'upperLeg'),
+    ('Bajo busto', 'Circunferencia justo debajo del busto.', 'underbust', 'cm'),
+    ('Circunferencia de muslo superior', 'Circunferencia en la parte más ancha del muslo superior.', 'upperLeg', 'cm'),
 
     -- W
-    ('Circunferencia de cintura', 'Circunferencia en la parte más estrecha de la cintura.', 'waist'),
-    ('Cintura trasera', 'Medida de cintura en la parte posterior (mitad de la circunferencia).', 'waistBack'),
-    ('Cintura a axila', 'Distancia vertical desde cintura hasta axila.', 'waistToArmpit'),
-    ('Cintura a piso', 'Longitud vertical desde cintura hasta el piso.', 'waistToFloor'),
-    ('Cintura a caderas', 'Distancia vertical desde cintura hasta línea de caderas.', 'waistToHips'),
-    ('Cintura a rodilla', 'Distancia vertical desde cintura hasta centro de la rodilla.', 'waistToKnee'),
-    ('Cintura a asiento', 'Distancia vertical desde cintura hasta línea de asiento.', 'waistToSeat'),
-    ('Cintura a bajo busto', 'Distancia vertical desde cintura hasta bajo busto.', 'waistToUnderbust'),
-    ('Cintura a muslo superior', 'Distancia vertical desde cintura hasta parte más ancha del muslo.', 'waistToUpperLeg'),
-    ('Circunferencia de muñeca', 'Circunferencia alrededor de la muñeca.', 'wrist');
+    ('Circunferencia de cintura', 'Circunferencia en la parte más estrecha de la cintura.', 'waist', 'cm'),
+    ('Cintura trasera', 'Medida de cintura en la parte posterior (mitad de la circunferencia).', 'waistBack', 'cm'),
+    ('Cintura a axila', 'Distancia vertical desde cintura hasta axila.', 'waistToArmpit', 'cm'),
+    ('Cintura a piso', 'Longitud vertical desde cintura hasta el piso.', 'waistToFloor', 'cm'),
+    ('Cintura a caderas', 'Distancia vertical desde cintura hasta línea de caderas.', 'waistToHips', 'cm'),
+    ('Cintura a rodilla', 'Distancia vertical desde cintura hasta centro de la rodilla.', 'waistToKnee', 'cm'),
+    ('Cintura a asiento', 'Distancia vertical desde cintura hasta línea de asiento.', 'waistToSeat', 'cm'),
+    ('Cintura a bajo busto', 'Distancia vertical desde cintura hasta bajo busto.', 'waistToUnderbust', 'cm'),
+    ('Cintura a muslo superior', 'Distancia vertical desde cintura hasta parte más ancha del muslo.', 'waistToUpperLeg', 'cm'),
+    ('Circunferencia de muñeca', 'Circunferencia alrededor de la muñeca.', 'wrist', 'cm');
 
 -- Sample design (Aaron pattern)
 INSERT INTO designs (name, description, freesewing_pattern, base_price, default_settings) VALUES
@@ -326,3 +327,14 @@ CREATE TABLE user_discount_code_redemptions (
 
 CREATE INDEX idx_redemptions_user ON user_discount_code_redemptions(user_id);
 CREATE INDEX idx_redemptions_code ON user_discount_code_redemptions(discount_code_id);
+
+-- Migration: add unit column to existing databases (safe to re-run)
+ALTER TABLE measurement_types ADD COLUMN IF NOT EXISTS unit VARCHAR(8) NOT NULL DEFAULT 'cm';
+UPDATE measurement_types SET unit = '°' WHERE freesewing_key = 'shoulderSlope';
+
+-- Data repair: fix shoulderSlope rows saved via the erroneous cm-to-mm conversion.
+-- No legitimate shoulder slope exceeds 90°, so values >90 were multiplied by 10 incorrectly.
+UPDATE user_measurements
+   SET value = value / 10
+ WHERE measurement_type_id = (SELECT id FROM measurement_types WHERE freesewing_key = 'shoulderSlope')
+   AND value > 90;

@@ -53,7 +53,7 @@ export const getMeasurementTypeById = async (req: Request, res: Response) => {
 
 export const createMeasurementType = async (req: Request, res: Response) => {
   try {
-    const { name, description, freesewing_key } = req.body;
+    const { name, description, freesewing_key, unit } = req.body;
 
     // Validate required fields
     if (!name) {
@@ -74,8 +74,8 @@ export const createMeasurementType = async (req: Request, res: Response) => {
 
     // Check if freesewing_key is unique (if provided)
     if (freesewing_key) {
-      const existingKeyType = await MeasurementType.findOne({ 
-        where: { freesewing_key } 
+      const existingKeyType = await MeasurementType.findOne({
+        where: { freesewing_key }
       });
       if (existingKeyType) {
         return res.status(400).json({
@@ -89,6 +89,7 @@ export const createMeasurementType = async (req: Request, res: Response) => {
       name,
       description,
       freesewing_key,
+      ...(unit !== undefined && { unit }),
     });
 
     res.status(201).json({
@@ -108,7 +109,7 @@ export const createMeasurementType = async (req: Request, res: Response) => {
 export const updateMeasurementType = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description, freesewing_key } = req.body;
+    const { name, description, freesewing_key, unit } = req.body;
 
     // Parse ID
     const typeId = Number(id);
@@ -158,6 +159,7 @@ export const updateMeasurementType = async (req: Request, res: Response) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (freesewing_key !== undefined) updateData.freesewing_key = freesewing_key;
+    if (unit !== undefined) updateData.unit = unit;
 
     await measurementType.update(updateData);
 

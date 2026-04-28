@@ -15,7 +15,7 @@ export const initializeDatabase = async () => {
         { name: 'High Point Shoulder to Bust', description: 'Distance from shoulder point to bust point', freesewing_key: 'hpsToBust' },
         { name: 'High Point Shoulder to Waist Back', description: 'Distance from shoulder point to waist at back', freesewing_key: 'hpsToWaistBack' },
         { name: 'Neck Circumference', description: 'Neck circumference', freesewing_key: 'neck' },
-        { name: 'Shoulder Slope', description: 'Shoulder slope angle in degrees', freesewing_key: 'shoulderSlope' },
+        { name: 'Shoulder Slope', description: 'Shoulder slope angle in degrees', freesewing_key: 'shoulderSlope', unit: '°' },
         { name: 'Shoulder to Shoulder', description: 'Distance between shoulder points', freesewing_key: 'shoulderToShoulder' },
         { name: 'Waist to Armpit', description: 'Distance from waist to armpit', freesewing_key: 'waistToArmpit' },
         { name: 'Waist to Hips', description: 'Distance from waist to hips', freesewing_key: 'waistToHips' },
