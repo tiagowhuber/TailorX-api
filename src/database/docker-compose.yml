@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  tailorxdb:
+    image: postgres:16
+    container_name: tailorxdb
+    environment:
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - tailorx-data:/var/lib/postgresql/data
+
+volumes:
+  tailorx-data:
+    driver: local
