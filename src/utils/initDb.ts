@@ -11,6 +11,7 @@ export const initializeDatabase = async () => {
       const measurementTypes = await MeasurementType.bulkCreate([
         { name: 'Biceps Circumference', description: 'Circumference of the biceps at the widest part', freesewing_key: 'biceps' },
         { name: 'Chest Circumference', description: 'Chest circumference at the fullest part', freesewing_key: 'chest' },
+        { name: 'High Bust Circumference', description: 'Circumference at armpit level, above the fullest part of the bust', freesewing_key: 'highBust' },
         { name: 'Hips Circumference', description: 'Hip circumference at the fullest part', freesewing_key: 'hips' },
         { name: 'High Point Shoulder to Bust', description: 'Distance from shoulder point to bust point', freesewing_key: 'hpsToBust' },
         { name: 'High Point Shoulder to Waist Back', description: 'Distance from shoulder point to waist at back', freesewing_key: 'hpsToWaistBack' },
