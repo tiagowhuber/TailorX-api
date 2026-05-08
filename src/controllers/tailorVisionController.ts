@@ -25,6 +25,8 @@ const MEASUREMENT_MAPPING: Record<string, string> = {
   'waist_to_floor': 'waistToFloor',
   'waist_to_knee': 'waistToKnee',
   'inseam': 'inseam',
+  'crotchDepth': 'crotchDepth',
+  'waistBack': 'waistBack',
   'height_calculated': 'height',
   // New keys are already in camelCase from Python, but adding here for completeness if Python reverts
   'hps_to_bust': 'hpsToBust',
