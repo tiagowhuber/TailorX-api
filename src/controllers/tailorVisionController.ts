@@ -88,10 +88,14 @@ export const generateMeasurements = async (req: Request, res: Response) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('TailorVision API error:', errorText);
-      return res.status(response.status).json({ 
-        success: false, 
-        message: `TailorVision API error: ${response.statusText}`,
-        details: errorText
+      let detail = errorText;
+      try {
+        const parsed = JSON.parse(errorText);
+        detail = parsed.detail || parsed.message || errorText;
+      } catch {}
+      return res.status(response.status).json({
+        success: false,
+        message: detail,
       });
     }
 
@@ -171,8 +175,7 @@ export const generateMeasurements = async (req: Request, res: Response) => {
     console.error('Generate measurements error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error',
-      error: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : 'Internal server error',
     });
   }
 };
